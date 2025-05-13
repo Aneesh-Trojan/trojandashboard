@@ -11,13 +11,18 @@ import {
   useGetIPRateLimitHistoryQuery 
 } from "../../services/BlockedIpList/ipRateLimit.service";
 import { FiClock, FiUnlock, FiX, FiCheck, FiLoader, FiArrowUp, FiArrowDown, FiSearch, FiLock } from "react-icons/fi";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 export default function BlockedIpList() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [filters, setFilters] = useState({
     ipaddress: "",
     isblocked: "",
+    startDate: null as Date | null,
+    endDate: null as Date | null,
   });
+  const [dateError, setDateError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const ipRateLimitsPerPage = 8;
@@ -43,6 +48,27 @@ export default function BlockedIpList() {
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFilters((prev) => ({ ...prev, [name]: value }));
+    setCurrentPage(1);
+  };
+
+  // Date filter handlers
+  const handleStartDateChange = (date: Date | null) => {
+    if (date && filters.endDate && date > filters.endDate) {
+      setDateError("Start date can't be after end date");
+    } else {
+      setDateError(null);
+      setFilters((prev) => ({ ...prev, startDate: date }));
+    }
+    setCurrentPage(1);
+  };
+
+  const handleEndDateChange = (date: Date | null) => {
+    if (date && filters.startDate && date < filters.startDate) {
+      setDateError("End date can't be before start date");
+    } else {
+      setDateError(null);
+      setFilters((prev) => ({ ...prev, endDate: date }));
+    }
     setCurrentPage(1);
   };
 
@@ -94,7 +120,14 @@ export default function BlockedIpList() {
     return ipRateLimits.filter((limit) => {
       const matchesSearch = limit.iPaddress.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus = filters.isblocked === "" || limit.isblocked === (filters.isblocked === "true");
-      return matchesSearch && matchesStatus;
+
+      // Date filter logic
+      const limitDate = new Date(limit.lastRequestTime);
+      const matchesDate =
+        (!filters.startDate || limitDate >= new Date(filters.startDate)) &&
+        (!filters.endDate || limitDate <= new Date(filters.endDate));
+
+      return matchesSearch && matchesStatus && matchesDate;
     });
   }, [ipRateLimits, searchQuery, filters]);
 
@@ -212,48 +245,97 @@ export default function BlockedIpList() {
                 </button>
               </div>
 
-              <div className="space-y-8 flex-1 overflow-y-auto pr-6">
-                <div className="space-y-6">
-                  <h4 className="text-base font-semibold text-gray-500 uppercase dark:text-gray-400 tracking-wide">
-                    Status Filters
-                  </h4>
-                  <div className="space-y-4">
-                    <select
-                      name="isblocked"
-                      value={filters.isblocked}
-                      onChange={handleFilterChange}
-                      className="w-full p-4 border border-gray-300 rounded-xl dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                <div className="space-y-8 flex-1 overflow-y-auto pr-6">
+                  <div className="space-y-6">
+                    <h4 className="text-base font-semibold text-gray-500 uppercase dark:text-gray-400 tracking-wide">
+                      Status Filters
+                    </h4>
+                    <div className="space-y-4">
+                      <select
+                        name="isblocked"
+                        value={filters.isblocked}
+                        onChange={handleFilterChange}
+                        className="w-full p-4 border border-gray-300 rounded-xl dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                      >
+                        <option value="">All Statuses</option>
+                        <option value="true">Blocked</option>
+                        <option value="false">Unblocked</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Date Range Filter */}
+                  <div className="space-y-6">
+                    <h4 className="text-base font-semibold text-gray-500 uppercase dark:text-gray-400 tracking-wide">
+                      Date Range
+                    </h4>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          From
+                        </label>
+                        <DatePicker
+                          selected={filters.startDate}
+                          onChange={handleStartDateChange}
+                          selectsStart
+                          startDate={filters.startDate}
+                          endDate={filters.endDate}
+                          maxDate={filters.endDate || new Date()}
+                          placeholderText="Select start date"
+                          className="w-full p-3 border border-gray-300 rounded-xl dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                          wrapperClassName="w-full"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          To
+                        </label>
+                        <DatePicker
+                          selected={filters.endDate}
+                          onChange={handleEndDateChange}
+                          selectsEnd
+                          startDate={filters.startDate}
+                          endDate={filters.endDate}
+                          minDate={filters.startDate || undefined}
+                          maxDate={new Date()}
+                          placeholderText="Select end date"
+                          className="w-full p-3 border border-gray-300 rounded-xl dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                          wrapperClassName="w-full"
+                        />
+                      </div>
+                      {dateError && (
+                        <div className="text-red-500 text-sm mt-2">
+                          {dateError}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex space-x-4 border-t border-gray-200 dark:border-gray-700 pt-8">
+                    <Button
+                      onClick={() =>
+                        setFilters({
+                          ipaddress: "",
+                          isblocked: "",
+                          startDate: null,
+                          endDate: null,
+                        })
+                      }
+                      className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-white py-4 text-lg rounded-2xl transition"
                     >
-                      <option value="">All Statuses</option>
-                      <option value="true">Blocked</option>
-                      <option value="false">Unblocked</option>
-                    </select>
+                      Clear All
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setIsFilterOpen(false);
+                        refetch();
+                      }}
+                      className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-4 text-lg rounded-2xl transition"
+                    >
+                      Apply Filters
+                    </Button>
                   </div>
                 </div>
-
-                <div className="flex space-x-4 border-t border-gray-200 dark:border-gray-700 pt-8">
-                  <Button
-                    onClick={() =>
-                      setFilters({
-                        ipaddress: "",
-                        isblocked: "",
-                      })
-                    }
-                    className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-white py-4 text-lg rounded-2xl transition"
-                  >
-                    Clear All
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      setIsFilterOpen(false);
-                      refetch();
-                    }}
-                    className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-4 text-lg rounded-2xl transition"
-                  >
-                    Apply Filters
-                  </Button>
-                </div>
-              </div>
             </div>
           </>
         )}

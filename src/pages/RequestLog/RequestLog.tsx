@@ -8,6 +8,8 @@ import { useSearchRequestLogsQuery } from "../../services/RequestLog/search";
 import { useGetRequestLogDetailsQuery } from "../../services/RequestLog/details";
 import { FiLoader, FiSearch, FiX, FiArrowUp, FiArrowDown } from "react-icons/fi";
 import { FcViewDetails } from "react-icons/fc";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 type SortDirection = 'asc' | 'desc';
 
@@ -18,7 +20,10 @@ export default function RequestLogManagement() {
     url: "",
     httpmethod: "",
     ipaddress: "",
+    startDate: null as Date | null,
+    endDate: null as Date | null,
   });
+  const [dateError, setDateError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
@@ -93,9 +98,15 @@ export default function RequestLogManagement() {
         log.httpMethod.toLowerCase().includes(searchQuery.toLowerCase()) ||
         log.ipAddress.toLowerCase().includes(searchQuery.toLowerCase());
 
-      return matchesSearch;
+      // Date filter logic
+      const logDate = new Date(log.createdAt);
+      const matchesDate = 
+        (!filters.startDate || logDate >= new Date(filters.startDate)) &&
+        (!filters.endDate || logDate <= new Date(filters.endDate));
+
+      return matchesSearch && matchesDate;
     });
-  }, [requestLogs, searchQuery]);
+  }, [requestLogs, searchQuery, filters.startDate, filters.endDate]);
 
   // Map the filteredRequestLogs to match the RequestLogTable's RequestLog interface
   const mappedRequestLogs = useMemo(() => filteredRequestLogs.map((log) => ({
@@ -269,6 +280,67 @@ export default function RequestLogManagement() {
                   </div>
                 </div>
 
+                {/* Date Range Filter */}
+                <div className="space-y-6">
+                  <h4 className="text-base font-semibold text-gray-500 uppercase dark:text-gray-400 tracking-wide">
+                    Date Range
+                  </h4>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        From
+                      </label>
+                      <DatePicker
+                        selected={filters.startDate}
+                        onChange={(date: Date | null) => {
+                          if (date && filters.endDate && date > filters.endDate) {
+                            setDateError("Start date can't be after end date");
+                          } else {
+                            setDateError(null);
+                            setFilters({...filters, startDate: date});
+                          }
+                        }}
+                        selectsStart
+                        startDate={filters.startDate}
+                        endDate={filters.endDate}
+                        maxDate={filters.endDate || new Date()}
+                        placeholderText="Select start date"
+                        className="w-full p-3 border border-gray-300 rounded-xl dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                        wrapperClassName="w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        To
+                      </label>
+                      <DatePicker
+                        selected={filters.endDate}
+                        onChange={(date: Date | null) => {
+                          if (date && filters.startDate && date < filters.startDate) {
+                            setDateError("End date can't be before start date");
+                          } else {
+                            setDateError(null);
+                            setFilters({...filters, endDate: date});
+                          }
+                        }}
+                        selectsEnd
+                        startDate={filters.startDate}
+                        endDate={filters.endDate}
+                        minDate={filters.startDate || undefined}
+                        maxDate={new Date()}
+                        placeholderText="Select end date"
+                        className="w-full p-3 border border-gray-300 rounded-xl dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                        wrapperClassName="w-full"
+                      />
+                    </div>
+                    {dateError && (
+                      <div className="text-red-500 text-sm mt-2">
+                        {dateError}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 <div className="flex space-x-4 border-t border-gray-200 dark:border-gray-700 pt-8">
                   <Button
                     onClick={() => {
@@ -276,7 +348,10 @@ export default function RequestLogManagement() {
                         url: "",
                         httpmethod: "",
                         ipaddress: "",
+                        startDate: null,
+                        endDate: null,
                       });
+                      setDateError(null);
                       setCurrentPage(1);
                     }}
                     className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-white py-4 text-lg rounded-2xl transition"
