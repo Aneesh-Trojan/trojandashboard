@@ -6,6 +6,7 @@ interface SearchRequestLogsRequest {
   url?: string;
   httpmethod?: string;
   ipaddress?: string;
+  clientname?: string;
 }
 
 // Define the request log response
@@ -20,6 +21,8 @@ export interface RequestLog {
   country: string;
   createdAt: string;
   apiKey: string | null;
+  clientName: string;
+  responseStatusCode: string;
 }
 
 // Inject endpoints for searching request logs

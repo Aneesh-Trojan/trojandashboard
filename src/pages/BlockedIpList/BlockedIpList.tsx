@@ -1,12 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
-import IPRateLimitTable from "../../components/tables/BasicTables/BlockedIpListTable";
 import IPRateLimitHistoryTable from "../../components/tables/BasicTables/IPRateLimitHistoryTable";
 import { Modal } from "../../components/ui/modal";
 import Button from "../../components/ui/button";
 import PageMeta from "../../components/common/PageMeta";
-import { useSearchIPRateLimitsQuery, useSaveIPRateLimitMutation, useGetIPRateLimitHistoryQuery } from "../../services/BlockedIpList/ipRateLimit.service";
+import { 
+  useSearchIPRateLimitsQuery, 
+  useSaveIPRateLimitMutation, 
+  useGetIPRateLimitHistoryQuery 
+} from "../../services/BlockedIpList/ipRateLimit.service";
+import { FiClock, FiUnlock, FiX, FiCheck, FiLoader, FiArrowUp, FiArrowDown, FiSearch, FiLock } from "react-icons/fi";
 
 export default function BlockedIpList() {
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -18,113 +22,157 @@ export default function BlockedIpList() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const ipRateLimitsPerPage = 8;
 
-  // Fetch IP rate limits
   const { data: ipRateLimits = [], refetch } = useSearchIPRateLimitsQuery(filters);
 
-  // State for handling history modal
   const [selectedIPAddress, setSelectedIPAddress] = useState<string | null>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
-
-  // State for handling unblock modal
   const [isUnblockModalOpen, setIsUnblockModalOpen] = useState(false);
   const [unblockComment, setUnblockComment] = useState<string>("");
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
 
-  // Fetch IP rate limit history
   const { data: ipRateLimitHistory, isLoading: isHistoryLoading } = useGetIPRateLimitHistoryQuery(
     { ipaddress: selectedIPAddress! },
     { skip: !selectedIPAddress }
   );
 
-  // Handle search input change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
     setCurrentPage(1);
   };
 
-  // Handle filter change
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFilters((prev) => ({ ...prev, [name]: value }));
     setCurrentPage(1);
   };
 
-  // Handle view history
   const handleViewHistory = (ipAddress: string) => {
     setSelectedIPAddress(ipAddress);
     setIsHistoryModalOpen(true);
   };
 
-  // Handle unblock button click
   const handleUnblockClick = (ipAddress: string) => {
     setSelectedIPAddress(ipAddress);
     setIsUnblockModalOpen(true);
   };
 
-  // Handle unblock submission
   const [saveIPRateLimit] = useSaveIPRateLimitMutation();
   const handleUnblockSubmit = async () => {
     if (!unblockComment) {
-      alert("Please provide a comment.");
+      setSaveStatus("error");
       return;
     }
     try {
+      setSaveStatus("saving");
       await saveIPRateLimit({ iPaddress: selectedIPAddress!, comment: unblockComment }).unwrap();
-      setIsUnblockModalOpen(false);
-      setUnblockComment("");
-      refetch(); // Refresh the table data
+      setSaveStatus("success");
+      setTimeout(() => {
+        setIsUnblockModalOpen(false);
+        setUnblockComment("");
+        refetch();
+        setSaveStatus("idle");
+      }, 3000);
     } catch (error) {
       console.error("Failed to unblock IP:", error);
-      alert("Failed to unblock IP. Please try again.");
+      setSaveStatus("error");
     }
   };
 
-  // Filtered IP rate limits based on search and filters
-  const filteredIPRateLimits = ipRateLimits.filter((limit) => {
-    const matchesSearch = limit.iPaddress.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = filters.isblocked === "" || limit.isblocked === (filters.isblocked === "true");
-    return matchesSearch && matchesStatus;
-  });
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
-  // Pagination logic
-  const totalPages = Math.ceil(filteredIPRateLimits.length / ipRateLimitsPerPage);
-  const currentIPRateLimits = filteredIPRateLimits.slice(
-    (currentPage - 1) * ipRateLimitsPerPage,
-    currentPage * ipRateLimitsPerPage
-  );
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
+
+  const filteredIPRateLimits = useMemo(() => {
+    return ipRateLimits.filter((limit) => {
+      const matchesSearch = limit.iPaddress.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = filters.isblocked === "" || limit.isblocked === (filters.isblocked === "true");
+      return matchesSearch && matchesStatus;
+    });
+  }, [ipRateLimits, searchQuery, filters]);
+
+  const sortedIPRateLimits = useMemo(() => {
+    if (!sortColumn) return filteredIPRateLimits;
+
+    return [...filteredIPRateLimits].sort((a, b) => {
+      let aValue: any = a[sortColumn as keyof typeof a];
+      let bValue: any = b[sortColumn as keyof typeof b];
+
+      if (aValue == null) return sortDirection === "asc" ? -1 : 1;
+      if (bValue == null) return sortDirection === "asc" ? 1 : -1;
+
+      if (typeof aValue === "boolean") aValue = aValue ? 1 : 0;
+      if (typeof bValue === "boolean") bValue = bValue ? 1 : 0;
+
+      if (sortColumn === "latestRequestTime") {
+        aValue = new Date(aValue).getTime();
+        bValue = new Date(bValue).getTime();
+      }
+
+      if (typeof aValue === "string" && !isNaN(Number(aValue))) {
+        aValue = Number(aValue);
+        bValue = Number(bValue);
+      }
+
+      if (typeof aValue === "string") aValue = aValue.toLowerCase();
+      if (typeof bValue === "string") bValue = bValue.toLowerCase();
+
+      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [filteredIPRateLimits, sortColumn, sortDirection]);
+
+  const totalPages = Math.ceil(sortedIPRateLimits.length / ipRateLimitsPerPage);
+  const currentIPRateLimits = useMemo(() => {
+    const startIndex = (currentPage - 1) * ipRateLimitsPerPage;
+    return sortedIPRateLimits.slice(startIndex, startIndex + ipRateLimitsPerPage);
+  }, [sortedIPRateLimits, currentPage]);
+
+  const getSortIcon = (column: string) => {
+    if (sortColumn === column) {
+      return sortDirection === "asc" ? <FiArrowUp className="ml-1" /> : <FiArrowDown className="ml-1" />;
+    }
+    return null;
+  };
 
   return (
     <>
       <PageMeta title="Blocked IP List" description="" />
       <PageBreadcrumb pageTitle="Blocked IP List" />
-      <div className="space-y-4 relative">
+      <ComponentCard title="Manage Blocked IPs" className="shadow-xl rounded-3xl border border-gray-200 dark:border-gray-700">
+    
+      {/* <div className="space-y-6 relative p-6 bg-white rounded-2xl shadow-lg dark:bg-gray-900"> */}
+      <div className="space-y-6 relative p-6">
         {/* Search and Filter Section */}
         <div className="flex gap-4 items-center w-full">
           <div className="relative flex-1">
-            <div className="flex rounded-lg shadow-sm hover:shadow-md transition-shadow w-full">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fillRule="evenodd"
-                    d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                    clipRule="evenodd"
-                  />
-                </svg>
+            <div className="flex rounded-full shadow-md hover:shadow-lg transition-shadow w-full bg-gray-100 dark:bg-gray-800">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                <FiSearch className="w-6 h-6" />
               </span>
               <input
                 type="text"
                 placeholder="Search IP addresses..."
                 value={searchQuery}
                 onChange={handleSearchChange}
-                className="w-full py-3 pl-10 pr-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+                className="w-full py-3 pl-14 pr-4 border-0 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg bg-transparent text-base bg-white dark:bg-gray-700 dark:text-white"
               />
             </div>
           </div>
           <Button
             onClick={() => setIsFilterOpen(!isFilterOpen)}
-            className="px-6 py-3 border rounded-lg bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-700 transition-colors"
+            className="px-6 py-3 border rounded-full bg-white hover:bg-gray-50 text-gray-700 hover:text-gray-900 shadow-md transition-colors flex items-center gap-2 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:bg-gray-700"
           >
             <svg
-              className="w-6 h-6 text-gray-700"
+              className="w-6 h-6 text-gray-700 dark:text-white"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -136,127 +184,273 @@ export default function BlockedIpList() {
                 d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
               />
             </svg>
+            <span className="hidden sm:inline">Filters</span>
           </Button>
         </div>
 
         {/* Filter Panel */}
-        <div
-          className={`fixed top-0 right-0 h-full w-96 bg-white shadow-xl transition-transform duration-300 ease-in-out ${
-            isFilterOpen ? "translate-x-0" : "translate-x-full"
-          }`}
-          style={{ zIndex: 1000 }}
-        >
-          <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-            <h3 className="text-xl font-semibold text-gray-800">Advanced Filters</h3>
-            <button
+        {isFilterOpen && (
+          <>
+            <div
+              className="fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity"
               onClick={() => setIsFilterOpen(false)}
-              className="text-gray-400 hover:text-gray-500"
+            />
+            <div
+              className="fixed top-20 right-0 h-[calc(100%-5rem)] w-96 bg-white dark:bg-gray-900 shadow-2xl transition-transform duration-300 ease-in-out z-50 rounded-l-3xl p-8 flex flex-col"
+              style={{ minHeight: "calc(100vh - 5rem)" }}
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-
-          <div className="p-6 space-y-6">
-            <div className="space-y-4">
-              <h4 className="text-sm font-medium text-gray-500 uppercase">Filters</h4>
-              <div className="space-y-3">
-                <select
-                  name="isblocked"
-                  value={filters.isblocked}
-                  onChange={handleFilterChange}
-                  className="w-full p-2 border rounded"
+              <div className="flex justify-between items-center mb-8">
+                <h3 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+                  Advanced Filters
+                </h3>
+                <button
+                  onClick={() => setIsFilterOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"
+                  aria-label="Close filter panel"
                 >
-                  <option value="">All</option>
-                  <option value="true">Blocked</option>
-                  <option value="false">Unblocked</option>
-                </select>
+                  <FiX className="w-7 h-7" />
+                </button>
+              </div>
+
+              <div className="space-y-8 flex-1 overflow-y-auto pr-6">
+                <div className="space-y-6">
+                  <h4 className="text-base font-semibold text-gray-500 uppercase dark:text-gray-400 tracking-wide">
+                    Status Filters
+                  </h4>
+                  <div className="space-y-4">
+                    <select
+                      name="isblocked"
+                      value={filters.isblocked}
+                      onChange={handleFilterChange}
+                      className="w-full p-4 border border-gray-300 rounded-xl dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                    >
+                      <option value="">All Statuses</option>
+                      <option value="true">Blocked</option>
+                      <option value="false">Unblocked</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex space-x-4 border-t border-gray-200 dark:border-gray-700 pt-8">
+                  <Button
+                    onClick={() =>
+                      setFilters({
+                        ipaddress: "",
+                        isblocked: "",
+                      })
+                    }
+                    className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-white py-4 text-lg rounded-2xl transition"
+                  >
+                    Clear All
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setIsFilterOpen(false);
+                      refetch();
+                    }}
+                    className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-4 text-lg rounded-2xl transition"
+                  >
+                    Apply Filters
+                  </Button>
+                </div>
               </div>
             </div>
+          </>
+        )}
 
-            <div className="flex space-x-3 border-t border-gray-200 pt-6">
-              <Button
-                onClick={() =>
-                  setFilters({
-                    ipaddress: "",
-                    isblocked: "",
-                  })
-                }
-                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 text-lg"
-              >
-                Clear All
-              </Button>
-              <Button
-                onClick={() => {
-                  setIsFilterOpen(false);
-                  refetch();
-                }}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg"
-              >
-                Apply Filters
-              </Button>
-            </div>
+        {/* Table */}
+        <div className="overflow-hidden rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 mt-6">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-800">
+                <tr>
+                  <th
+                    scope="col"
+                    className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    onClick={() => handleSort("iPaddress")}
+                  >
+                    <div className="flex items-center">
+                      IP Address
+                      {getSortIcon("iPaddress")}
+                    </div>
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    onClick={() => handleSort("requestCount")}
+                  >
+                    <div className="flex items-center">
+                      Request Count
+                      {getSortIcon("requestCount")}
+                    </div>
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    onClick={() => handleSort("latestRequestTime")}
+                  >
+                    <div className="flex items-center">
+                      Latest Request Time
+                      {getSortIcon("latestRequestTime")}
+                    </div>
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    onClick={() => handleSort("isblocked")}
+                  >
+                    <div className="flex items-center">
+                      Status
+                      {getSortIcon("isblocked")}
+                    </div>
+                  </th>
+                  <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                {currentIPRateLimits.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="text-center py-6 text-gray-500 dark:text-gray-400">
+                      No requests found matching the criteria.
+                    </td>
+                  </tr>
+                ) : (
+                  currentIPRateLimits.map((limit) => (
+                    <tr
+                      key={limit.iPaddress}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white">
+                        {limit.iPaddress}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {limit.requestCount ?? 0}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {limit.lastRequestTime ? new Date(limit.lastRequestTime).toLocaleString() : "N/A"}
+                      </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        {limit.isblocked ? (
+                          <>
+                            <FiLock className="mr-2 text-red-500" />
+                            <span className="text-red-600 dark:text-red-400">Blocked</span>
+                          </>
+                        ) : (
+                          <>
+                            <FiUnlock className="mr-2 text-green-500" />
+                            <span className="text-green-600 dark:text-green-400">Unblocked</span>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        <div className="flex gap-2">
+                          <Button
+                            className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2 rounded-lg shadow-md transition duration-300"
+                            onClick={() => handleViewHistory(limit.iPaddress)}
+                          >
+                            <FiClock className="inline mr-1" />
+                            History
+                          </Button>
+                          {limit.isblocked && (
+                            <Button
+                              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-2 rounded-lg shadow-md transition duration-300"
+                              onClick={() => handleUnblockClick(limit.iPaddress)}
+                            >
+                              <FiUnlock className="inline mr-1" />
+                              Unblock
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
 
-        {/* Table and Pagination */}
-        <ComponentCard title="Manage Blocked IPs">
-          <IPRateLimitTable
-            ipRateLimits={currentIPRateLimits}
-            onViewHistory={handleViewHistory}
-            onUnblock={handleUnblockClick}
-          />
-        </ComponentCard>
-
         {/* Pagination */}
-        <div className="flex justify-center gap-2">
+        <div className="flex justify-center gap-2 sm:gap-3 mt-4 sm:mt-6">
           <Button
             onClick={() => setCurrentPage(1)}
             disabled={currentPage === 1}
+            className={`px-3 sm:px-4 py-1 sm:py-2 rounded-lg shadow-md transition duration-300 ${
+              currentPage === 1 
+                ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed' 
+                : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
+            }`}
+            aria-label="Go to first page"
           >
             {"<<"}
           </Button>
           <Button
             onClick={() => setCurrentPage(currentPage - 1)}
             disabled={currentPage === 1}
+            className={`px-3 sm:px-4 py-1 sm:py-2 rounded-lg shadow-md transition duration-300 ${
+              currentPage === 1 
+                ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed' 
+                : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
+            }`}
+            aria-label="Go to previous page"
           >
             {"<"}
           </Button>
-          <span className="flex items-center gap-2 dark:text-white/40">
+          <span className="flex items-center gap-1 sm:gap-2 dark:text-white/40 text-sm sm:text-lg font-medium">
             Page {currentPage} of {totalPages}
           </span>
           <Button
             onClick={() => setCurrentPage(currentPage + 1)}
-            disabled={currentPage === totalPages}
+            disabled={currentPage === totalPages || totalPages === 0}
+            className={`px-3 sm:px-4 py-1 sm:py-2 rounded-lg shadow-md transition duration-300 ${
+              currentPage === totalPages || totalPages === 0
+                ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed' 
+                : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
+            }`}
+            aria-label="Go to next page"
           >
             {">"}
           </Button>
           <Button
             onClick={() => setCurrentPage(totalPages)}
-            disabled={currentPage === totalPages}
+            disabled={currentPage === totalPages || totalPages === 0}
+            className={`px-3 sm:px-4 py-1 sm:py-2 rounded-lg shadow-md transition duration-300 ${
+              currentPage === totalPages || totalPages === 0
+                ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed' 
+                : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
+            }`}
+            aria-label="Go to last page"
           >
             {">>"}
           </Button>
         </div>
       </div>
-
+</ComponentCard>
       {/* History Modal */}
       <Modal
         isOpen={isHistoryModalOpen}
         onClose={() => setIsHistoryModalOpen(false)}
-        className="max-w-4xl"
+        className="max-w-4xl rounded-3xl overflow-hidden shadow-2xl"
       >
-        <div className="p-8 bg-white dark:bg-gray-800 rounded-lg">
-          <h2 className="text-2xl font-semibold mb-6 text-gray-900 dark:text-white/90">
-            IP Rate Limit History
-          </h2>
+        <div className="p-8 bg-white dark:bg-gray-900 rounded-3xl">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white/90 tracking-tight">
+              IP Rate Limit History - {selectedIPAddress}
+            </h2>
+          </div>
           {isHistoryLoading ? (
-            <p className="text-gray-600 dark:text-gray-400">Loading history...</p>
+            <div className="flex items-center justify-center py-8">
+              <FiLoader className="animate-spin text-blue-500 text-3xl mr-3" />
+              <span className="text-lg font-medium">Loading history...</span>
+            </div>
           ) : ipRateLimitHistory ? (
             <IPRateLimitHistoryTable history={ipRateLimitHistory} />
           ) : (
-            <p className="text-gray-600 dark:text-gray-400">No history found.</p>
+            <p className="text-gray-600 dark:text-gray-400 text-center py-8">No history found.</p>
           )}
         </div>
       </Modal>
@@ -264,38 +458,91 @@ export default function BlockedIpList() {
       {/* Unblock Modal */}
       <Modal
         isOpen={isUnblockModalOpen}
-        onClose={() => setIsUnblockModalOpen(false)}
-        className="max-w-md"
+        onClose={() => {
+          setIsUnblockModalOpen(false);
+          setUnblockComment("");
+          setSaveStatus("idle");
+        }}
+        className="max-w-md rounded-3xl overflow-hidden shadow-2xl"
       >
-        <div className="p-8 bg-white dark:bg-gray-800 rounded-lg">
-          <h2 className="text-2xl font-semibold mb-6 text-gray-900 dark:text-white/90">
-            Unblock IP Address
-          </h2>
+        <div className="p-8 bg-white dark:bg-gray-900 rounded-3xl">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white/90 tracking-tight">
+              Unblock IP Address
+            </h2>
+            <button
+              onClick={() => setIsUnblockModalOpen(false)}
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"
+            >
+              <FiX className="w-6 h-6" />
+            </button>
+          </div>
+
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
-                Comment (Mandatory)
+              <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-2 uppercase tracking-wide">
+                IP Address
+              </label>
+              <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-gray-900 dark:text-white">
+                {selectedIPAddress}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-2 uppercase tracking-wide">
+                Comment (Required)
               </label>
               <textarea
                 value={unblockComment}
                 onChange={(e) => setUnblockComment(e.target.value)}
-                className="w-full p-2 border rounded"
+                className={`w-full p-4 border border-gray-300 rounded-xl dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
+                  saveStatus === "error" && !unblockComment ? "border-red-500 dark:border-red-500" : ""
+                }`}
                 rows={4}
-                placeholder="Enter a comment..."
+                placeholder="Enter a reason for unblocking..."
               />
+              {saveStatus === "error" && !unblockComment && (
+                <p className="text-red-500 dark:text-red-400 text-sm mt-2">Comment is required</p>
+              )}
             </div>
-            <div className="flex justify-end gap-3">
+
+            {/* Status message */}
+            {saveStatus === "success" && (
+              <div className="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-900/30 rounded-xl text-green-600 dark:text-green-400">
+                <FiCheck className="h-5 w-5" />
+                <span>IP address unblocked successfully!</span>
+              </div>
+            )}
+            {saveStatus === "error" && unblockComment && (
+              <div className="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/30 rounded-xl text-red-600 dark:text-red-400">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                <span>Error unblocking IP. Please try again.</span>
+              </div>
+            )}
+
+            <div className="flex justify-end space-x-4 pt-4">
               <Button
                 onClick={() => setIsUnblockModalOpen(false)}
-                className="bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4"
+                disabled={saveStatus === "saving"}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 text-lg rounded-xl transition dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleUnblockSubmit}
-                className="bg-red-600 hover:bg-blue-700 text-white py-2 px-4"
+                disabled={saveStatus === "saving"}
+                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-3 text-lg rounded-xl transition min-w-24"
               >
-                Unblock
+                {saveStatus === "saving" ? (
+                  <>
+                    <FiLoader className="animate-spin mr-2 inline" />
+                    Saving...
+                  </>
+                ) : (
+                  "Unblock"
+                )}
               </Button>
             </div>
           </div>

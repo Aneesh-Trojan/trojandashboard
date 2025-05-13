@@ -1,21 +1,23 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
-import UrlMappingTable from "../../components/tables/BasicTables/UrlMappingTable";
 import { Modal } from "../../components/ui/modal";
 import Button from "../../components/ui/button";
 import PageMeta from "../../components/common/PageMeta";
 import { useSaveUrlMappingMutation } from "../../services/UrlMapping/save";
 import { useSearchUrlMappingsQuery } from "../../services/UrlMapping/search";
-import { FiCheck, FiLoader } from "react-icons/fi";
+import { FiCheck, FiLoader, FiX, FiSearch, FiArrowUp, FiArrowDown } from "react-icons/fi";
+import KeyMappingModal from "../../components/tables/BasicTables/KeyMappingModal"; // Adjust the path as needed
 
-// Interfaces for URL Mapping
+
 interface UrlMapping {
   id: number | null;
   incomingurl: string;
   mappedurl: string;
   isactive: boolean;
 }
+
+type SortDirection = "asc" | "desc";
 
 export default function UrlMappingManagement() {
   const [urlMappings, setUrlMappings] = useState<UrlMapping[]>([]);
@@ -38,25 +40,26 @@ export default function UrlMappingManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const urlMappingsPerPage = 8;
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
-  // Use the search API hook
+  const [isKeyMappingModalOpen, setIsKeyMappingModalOpen] = useState(false);
+  const [selectedUrlMappingId, setSelectedUrlMappingId] = useState<number | null>(null);
+
   const { data: searchUrlMappings, refetch } = useSearchUrlMappingsQuery({
     incomingurl: filters.incomingurl,
     mappedurl: filters.mappedurl,
     isactive: filters.isactive,
   });
 
-  // Use the save API mutation hook
   const [saveUrlMapping] = useSaveUrlMappingMutation();
 
-  // Update URL mappings when search results change
   useEffect(() => {
     if (searchUrlMappings) {
       setUrlMappings(searchUrlMappings);
     }
   }, [searchUrlMappings]);
 
-  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
@@ -66,22 +69,17 @@ export default function UrlMappingManagement() {
           id: formData.id || null,
           incomingurl: formData.incomingurl,
           mappedurl: formData.mappedurl,
-          isactive: formData.isactive
+          isactive: formData.isactive,
         };
 
-        // Call the save API
         await saveUrlMapping(payload).unwrap();
-
-        // Set success status
         setSaveStatus("success");
 
-        // Highlight the new/edited item
         if (payload.id) {
           setHighlightedItem(payload.id);
           setTimeout(() => setHighlightedItem(null), 2000);
         }
 
-        // Reset form and close modal after delay
         setTimeout(() => {
           setIsFormOpen(false);
           setFormData({
@@ -100,7 +98,6 @@ export default function UrlMappingManagement() {
     }
   };
 
-  // Form validation
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.incomingurl) newErrors.incomingurl = "Incoming URL is required";
@@ -109,213 +106,417 @@ export default function UrlMappingManagement() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
-  // Handle search input change
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: checked }));
+  };
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
     setCurrentPage(1);
   };
 
-  // Handle filter change
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     setFilters((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: type === "checkbox" ? (checked ? 1 : -1) : value,
     }));
     setCurrentPage(1);
   };
 
-  // Filtered URL mappings based on search and filters
-  const filteredUrlMappings = urlMappings.filter((mapping) => {
-    const matchesSearch =
-      mapping.incomingurl.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      mapping.mappedurl.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesActive = filters.isactive === -1 || mapping.isactive === (filters.isactive === 1);
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
 
-    return matchesSearch && matchesActive;
-  });
+  const getSortIcon = (column: string) => {
+    if (sortColumn === column) {
+      return sortDirection === "asc" ? <FiArrowUp className="ml-1" /> : <FiArrowDown className="ml-1" />;
+    }
+    return null;
+  };
 
-  // Pagination logic
-  const totalPages = Math.ceil(filteredUrlMappings.length / urlMappingsPerPage);
-  const currentUrlMappings = filteredUrlMappings.slice(
-    (currentPage - 1) * urlMappingsPerPage,
-    currentPage * urlMappingsPerPage
-  );
+  const filteredUrlMappings = useMemo(() => {
+    return urlMappings.filter((mapping) => {
+      const matchesSearch =
+        mapping.incomingurl.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        mapping.mappedurl.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesIncomingUrl = filters.incomingurl
+        ? mapping.incomingurl.toLowerCase().includes(filters.incomingurl.toLowerCase())
+        : true;
+      const matchesMappedUrl = filters.mappedurl
+        ? mapping.mappedurl.toLowerCase().includes(filters.mappedurl.toLowerCase())
+        : true;
+      const matchesActive = filters.isactive === -1 || mapping.isactive === (filters.isactive === 1);
+      return matchesSearch && matchesIncomingUrl && matchesMappedUrl && matchesActive;
+    });
+  }, [urlMappings, searchQuery, filters]);
+
+  const sortedUrlMappings = useMemo(() => {
+    if (!sortColumn) return filteredUrlMappings;
+
+    return [...filteredUrlMappings].sort((a, b) => {
+      let aValue: any = a[sortColumn as keyof UrlMapping];
+      let bValue: any = b[sortColumn as keyof UrlMapping];
+
+      if (aValue === null) return sortDirection === "asc" ? -1 : 1;
+      if (bValue === null) return sortDirection === "asc" ? 1 : -1;
+
+      if (typeof aValue === "boolean") aValue = aValue ? 1 : 0;
+      if (typeof bValue === "boolean") bValue = bValue ? 1 : 0;
+
+      if (typeof aValue === "string") aValue = aValue.toLowerCase();
+      if (typeof bValue === "string") bValue = bValue.toLowerCase();
+
+      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [filteredUrlMappings, sortColumn, sortDirection]);
+
+  const totalPages = Math.ceil(sortedUrlMappings.length / urlMappingsPerPage);
+  const currentUrlMappings = useMemo(() => {
+    const startIndex = (currentPage - 1) * urlMappingsPerPage;
+    return sortedUrlMappings.slice(startIndex, startIndex + urlMappingsPerPage);
+  }, [sortedUrlMappings, currentPage]);
 
   return (
     <>
       <PageMeta title="URL Mapping Management" description="" />
       <PageBreadcrumb pageTitle="URL Mapping Management" />
-      
-      <div className="space-y-4 relative">
-        {/* Search and Filter Section */}
-        <div className="flex gap-4 items-center w-full">
-          <div className="relative flex-1">
-            <div className="flex rounded-lg shadow-sm hover:shadow-md transition-shadow w-full">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fillRule="evenodd"
-                    d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </span>
-              <input
-                type="text"
-                placeholder="Search URL mappings..."
-                value={searchQuery}
-                onChange={handleSearchChange}
-                className="w-full py-3 pl-10 pr-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
-              />
-            </div>
-          </div>
-          <Button
-            onClick={() => setIsFilterOpen(!isFilterOpen)}
-            className="px-6 py-3 border rounded-lg bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-700 transition-colors"
-          >
-            <svg
-              className="w-6 h-6 text-gray-700"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-              />
-            </svg>
-          </Button>
-          <Button
-            onClick={() => setIsFormOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors text-lg"
-          >
-            <span className="pr-2 text-xl">+</span>Add
-          </Button>
-        </div>
-
-        {/* Filter Panel */}
-        <div
-          className={`fixed top-0 right-0 h-full w-96 bg-white shadow-xl transition-transform duration-300 ease-in-out ${
-            isFilterOpen ? "translate-x-0" : "translate-x-full"
-          }`}
-          style={{ zIndex: 1000 }}
-        >
-          <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-            <h3 className="text-xl font-semibold text-gray-800">Advanced Filters</h3>
-            <button
-              onClick={() => setIsFilterOpen(false)}
-              className="text-gray-400 hover:text-gray-500"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-
-          <div className="p-6 space-y-6">
-            <div className="space-y-4">
-              <h4 className="text-sm font-medium text-gray-500 uppercase">Status Filters</h4>
-              <div className="space-y-3">
-                <label className="flex items-center space-x-3 group">
-                  <input
-                    type="checkbox"
-                    checked={filters.isactive === 1}
-                    onChange={() =>
-                      setFilters((prev) => ({
-                        ...prev,
-                        isactive: prev.isactive === 1 ? -1 : 1,
-                      }))
-                    }
-                    className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 group-hover:border-blue-400"
-                  />
-                  <span className="text-gray-700 group-hover:text-gray-900 text-lg">Active</span>
-                </label>
+      <ComponentCard title="Manage URL Mappings" className="shadow-xl rounded-3xl border border-gray-200 dark:border-gray-700">
+        <div className="space-y-6 relative p-6">
+          {/* Search and Filter Section */}
+          <div className="flex gap-4 items-center w-full">
+            <div className="relative flex-1">
+              <div className="flex rounded-full shadow-md hover:shadow-lg transition-shadow w-full bg-gray-100 dark:bg-gray-800">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                  <FiSearch className="w-6 h-6" />
+                </span>
+                <input
+                  type="text"
+                  placeholder="Search URL mappings..."
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  className="w-full py-3 pl-14 pr-4 border-0 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg bg-transparent  text-base bg-white dark:bg-gray-700 dark:text-white"
+                />
               </div>
             </div>
+            <Button
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className="px-6 py-3 border rounded-full bg-white hover:bg-gray-50 text-gray-700 hover:text-gray-900 shadow-md transition-colors flex items-center gap-2 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:bg-gray-700"
+            >
+              <svg
+                className="w-6 h-6 text-gray-700 dark:text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                />
+              </svg>
+              <span className="hidden sm:inline">Filters</span>
+            </Button>
+            <Button
+              onClick={() => setIsFormOpen(true)}
+              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-3 rounded-full transition-colors text-lg shadow-md"
+            >
+              <span className="pr-2 text-xl">+</span>Add
+            </Button>
+          </div>
 
-            <div className="flex space-x-3 border-t border-gray-200 pt-6">
-              <Button
-                onClick={() =>
-                  setFilters({
-                    incomingurl: "",
-                    mappedurl: "",
-                    isactive: -1,
-                  })
-                }
-                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 text-lg"
+          {/* Filter Panel */}
+          {isFilterOpen && (
+            <>
+              <div
+                className="fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity"
+                onClick={() => setIsFilterOpen(false)}
+              />
+              <div
+                className="fixed top-20 right-0 h-[calc(100%-5rem)] w-96 bg-white dark:bg-gray-900 shadow-2xl transition-transform duration-300 ease-in-out z-50 rounded-l-3xl p-8 flex flex-col"
+                style={{ minHeight: "calc(100vh - 5rem)" }}
               >
-                Clear All
-              </Button>
-              <Button
-                onClick={() => {
-                  setIsFilterOpen(false);
-                  refetch();
-                }}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg"
-              >
-                Apply Filters
-              </Button>
+                <div className="flex justify-between items-center mb-8">
+                  <h3 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+                    Advanced Filters
+                  </h3>
+                  <button
+                    onClick={() => setIsFilterOpen(false)}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"
+                    aria-label="Close filter panel"
+                  >
+                    <FiX className="w-7 h-7" />
+                  </button>
+                </div>
+
+                <div className="space-y-8 flex-1 overflow-y-auto pr-6">
+                  <div className="space-y-6">
+                    <h4 className="text-base font-semibold text-gray-500 uppercase dark:text-gray-400 tracking-wide">
+                      URL Filters
+                    </h4>
+                    <div className="space-y-4">
+                      <label className="block">
+                        <span className="text-gray-700 dark:text-gray-300">Incoming URL</span>
+                        <input
+                          type="text"
+                          name="incomingurl"
+                          value={filters.incomingurl}
+                          onChange={handleFilterChange}
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="text-gray-700 dark:text-gray-300">Mapped URL</span>
+                        <input
+                          type="text"
+                          name="mappedurl"
+                          value={filters.mappedurl}
+                          onChange={handleFilterChange}
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    <h4 className="text-base font-semibold text-gray-500 uppercase dark:text-gray-400 tracking-wide">
+                      Status Filters
+                    </h4>
+                    <div className="space-y-4">
+                      <label className="flex items-center space-x-4 group">
+                        <div className="relative flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={filters.isactive === 1}
+                            onChange={() =>
+                              setFilters((prev) => ({
+                                ...prev,
+                                isactive: prev.isactive === 1 ? -1 : 1,
+                              }))
+                            }
+                            className="w-6 h-6 text-blue-600 border-gray-300 rounded focus:ring-blue-500 group-hover:border-blue-400 dark:bg-gray-800 dark:border-gray-700"
+                          />
+                        </div>
+                        <span className="text-gray-700 group-hover:text-gray-900 text-lg dark:text-gray-300 dark:group-hover:text-white">
+                          Active
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="flex space-x-4 border-t border-gray-200 dark:border-gray-700 pt-8">
+                    <Button
+                      onClick={() =>
+                        setFilters({
+                          incomingurl: "",
+                          mappedurl: "",
+                          isactive: -1,
+                        })
+                      }
+                      className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-white py-4 text-lg rounded-2xl transition"
+                    >
+                      Clear All
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setIsFilterOpen(false);
+                        refetch();
+                      }}
+                      className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-4 text-lg rounded-2xl transition"
+                    >
+                      Apply Filters
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Table */}
+          <div className="overflow-hidden rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-800">
+                  <tr>
+                    <th
+                      scope="col"
+                      className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      onClick={() => handleSort("incomingurl")}
+                    >
+                      <div className="flex items-center">
+                        Incoming URL
+                        {getSortIcon("incomingurl")}
+                      </div>
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      onClick={() => handleSort("mappedurl")}
+                    >
+                      <div className="flex items-center">
+                        Mapped URL
+                        {getSortIcon("mappedurl")}
+                      </div>
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      onClick={() => handleSort("isactive")}
+                    >
+                      <div className="flex items-center">
+                        Active
+                        {getSortIcon("isactive")}
+                      </div>
+                    </th>
+                    <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                {currentUrlMappings.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="text-center py-6 text-gray-500 dark:text-gray-400">
+                      No requests found matching the criteria.
+                    </td>
+                  </tr>
+                ) : (
+                  currentUrlMappings.map((mapping) => (
+                    <tr
+                      key={mapping.id || Math.random()}
+                      className={`hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${highlightedItem === mapping.id ? "bg-yellow-100 dark:bg-yellow-900" : ""
+                        }`}
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white">
+                        {mapping.incomingurl}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white">
+                        {mapping.mappedurl}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {mapping.isactive ? "Yes" : "No"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        <div className="flex space-x-2">
+                          <Button
+                            className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2 rounded-lg shadow-md transition duration-300"
+                            onClick={() => {
+                              setFormData(mapping);
+                              setIsFormOpen(true);
+                            }}
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-5 w-5"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M11 5H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                              />
+                            </svg>
+                          </Button>
+                          <Button
+                            className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white px-4 py-2 rounded-lg shadow-md transition duration-300"
+                            onClick={() => {
+                              if (mapping.id) {
+                                setSelectedUrlMappingId(mapping.id);
+                                setIsKeyMappingModalOpen(true);
+                              }
+                            }}
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-5 w-5"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                              />
+                            </svg>
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+                </tbody>
+              </table>
             </div>
           </div>
-        </div>
 
-        {/* Table and Pagination */}
-        <ComponentCard title="Manage URL Mappings">
-          <UrlMappingTable
-            urlMappings={currentUrlMappings}
-            onEdit={(mapping) => {
-              setFormData(mapping);
-              setIsFormOpen(true);
-            }}
-            highlightedItem={highlightedItem}
-          />
-        </ComponentCard>
-
-        {/* Pagination */}
-        <div className="flex justify-center gap-2">
-          <Button
-            onClick={() => setCurrentPage(1)}
-            disabled={currentPage === 1}
-          >
-            {"<<"}
-          </Button>
-          <Button
-            onClick={() => setCurrentPage(currentPage - 1)}
-            disabled={currentPage === 1}
-          >
-            {"<"}
-          </Button>
-          <span className="flex items-center gap-2 dark:text-white/40">
-            Page {currentPage} of {totalPages}
-          </span>
-          <Button
-            onClick={() => setCurrentPage(currentPage + 1)}
-            disabled={currentPage === totalPages}
-          >
-            {">"}
-          </Button>
-          <Button
-            onClick={() => setCurrentPage(totalPages)}
-            disabled={currentPage === totalPages}
-          >
-            {">>"}
-          </Button>
+          {/* Pagination */}
+          <div className="flex justify-center gap-2 sm:gap-3 mt-4 sm:mt-6">
+            <Button
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className={`px-3 sm:px-4 py-1 sm:py-2 rounded-lg shadow-md transition duration-300 ${currentPage === 1 ? "bg-gray-300 dark:bg-gray-600 cursor-not-allowed" : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                }`}
+              aria-label="Go to first page"
+            >
+              {"<<"}
+            </Button>
+            <Button
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 1}
+              className={`px-3 sm:px-4 py-1 sm:py-2 rounded-lg shadow-md transition duration-300 ${currentPage === 1 ? "bg-gray-300 dark:bg-gray-600 cursor-not-allowed" : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                }`}
+              aria-label="Go to previous page"
+            >
+              {"<"}
+            </Button>
+            <span className="flex items-center gap-1 sm:gap-2 dark:text-white/40 text-sm sm:text-lg font-medium">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage === totalPages || totalPages === 0}
+              className={`px-3 sm:px-4 py-1 sm:py-2 rounded-lg shadow-md transition duration-300 ${currentPage === totalPages || totalPages === 0 ? "bg-gray-300 dark:bg-gray-600 cursor-not-allowed" : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                }`}
+              aria-label="Go to next page"
+            >
+              {">"}
+            </Button>
+            <Button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages || totalPages === 0}
+              className={`px-3 sm:px-4 py-1 sm:py-2 rounded-lg shadow-md transition duration-300 ${currentPage === totalPages || totalPages === 0 ? "bg-gray-300 dark:bg-gray-600 cursor-not-allowed" : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                }`}
+              aria-label="Go to last page"
+            >
+              {">>"}
+            </Button>
+          </div>
         </div>
-      </div>
+      </ComponentCard>
 
       {/* Add/Edit URL Mapping Modal */}
-      <Modal 
-        isOpen={isFormOpen} 
+      <Modal
+        isOpen={isFormOpen}
         onClose={() => {
           setIsFormOpen(false);
           setFormData({
@@ -326,101 +527,119 @@ export default function UrlMappingManagement() {
           });
           setErrors({});
           setSaveStatus("idle");
-        }} 
-        className="max-w-md"
+        }}
+        className="max-w-md rounded-3xl overflow-hidden shadow-2xl"
       >
-        <form onSubmit={handleSubmit} className="p-6">
-          <h2 className="text-xl font-semibold mb-6 dark:text-white/90">
-            {formData.id ? "Edit URL Mapping" : "Add New URL Mapping"}
-          </h2>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-2 dark:text-gray-400">Incoming URL</label>
-            <input
-              type="text"
-              name="incomingurl"
-              value={formData.incomingurl}
-              onChange={handleInputChange}
-              className={`w-full p-2 border rounded ${
-                errors.incomingurl ? "border-red-500" : "border-gray-300"
-              }`}
-            />
-            {errors.incomingurl && (
-              <p className="text-red-500 text-sm mt-1">{errors.incomingurl}</p>
-            )}
+        <div className="p-8 bg-white dark:bg-gray-900 rounded-3xl">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white/90 tracking-tight">
+              {formData.id ? "Edit URL Mapping" : "Add New URL Mapping"}
+            </h2>
           </div>
 
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-2 dark:text-gray-400">Mapped URL</label>
-            <input
-              type="text"
-              name="mappedurl"
-              value={formData.mappedurl}
-              onChange={handleInputChange}
-              className={`w-full p-2 border rounded ${
-                errors.mappedurl ? "border-red-500" : "border-gray-300"
-              }`}
-            />
-            {errors.mappedurl && (
-              <p className="text-red-500 text-sm mt-1">{errors.mappedurl}</p>
-            )}
-          </div>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-2 uppercase tracking-wide">
+                Incoming URL
+              </label>
+              <input
+                type="text"
+                name="incomingurl"
+                value={formData.incomingurl}
+                onChange={handleInputChange}
+                className={`w-full p-4 border border-gray-300 rounded-xl dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${errors.incomingurl ? "border-red-500 dark:border-red-500" : ""
+                  }`}
+              />
+              {errors.incomingurl && (
+                <p className="text-red-500 dark:text-red-400 text-sm mt-2">{errors.incomingurl}</p>
+              )}
+            </div>
 
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-2 dark:text-gray-400">Active</label>
-            <input
-              type="checkbox"
-              name="isactive"
-              checked={formData.isactive}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, isactive: e.target.checked }))
-              }
-              className="w-5 h-5"
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-2 uppercase tracking-wide">
+                Mapped URL
+              </label>
+              <input
+                type="text"
+                name="mappedurl"
+                value={formData.mappedurl}
+                onChange={handleInputChange}
+                className={`w-full p-4 border border-gray-300 rounded-xl dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${errors.mappedurl ? "border-red-500 dark:border-red-500" : ""
+                  }`}
+              />
+              {errors.mappedurl && (
+                <p className="text-red-500 dark:text-red-400 text-sm mt-2">{errors.mappedurl}</p>
+              )}
+            </div>
 
-          {/* Status message */}
-          <div className="mb-4">
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="isactive"
+                name="isactive"
+                checked={formData.isactive}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, isactive: e.target.checked }))
+                }
+                className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700"
+              />
+              <label htmlFor="isactive" className="ml-3 text-lg text-gray-700 dark:text-gray-300">
+                Active
+              </label>
+            </div>
+
+            {/* Status message */}
             {saveStatus === "success" && (
-              <div className="flex items-center gap-2 text-green-600 dark:text-green-400 text-sm">
-                <FiCheck className="h-4 w-4" />
+              <div className="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-900/30 rounded-xl text-green-600 dark:text-green-400">
+                <FiCheck className="h-5 w-5" />
                 <span>URL Mapping saved successfully!</span>
               </div>
             )}
             {saveStatus === "error" && (
-              <div className="flex items-center gap-2 text-red-600 dark:text-red-400 text-sm">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+              <div className="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/30 rounded-xl text-red-600 dark:text-red-400">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                 </svg>
                 <span>Error saving URL Mapping. Please try again.</span>
               </div>
             )}
-          </div>
 
-          <div className="flex justify-end space-x-4">
-            <Button
-              className="bg-gray-300 hover:bg-gray-400 text-gray-800 mr-4 px-6 py-3 text-lg"
-              onClick={() => setIsFormOpen(false)}
-              disabled={saveStatus === "saving"}
-            >
-              Cancel
-            </Button>
-            <Button 
-              className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 text-lg min-w-24"
-              disabled={saveStatus === "saving"}
-            >
-              {saveStatus === "saving" ? (
-                <>
-                  <FiLoader className="animate-spin mr-2 inline" />
-                  Saving...
-                </>
-              ) : (
-                "Save"
-              )}
-            </Button>
-          </div>
-        </form>
+            <div className="flex justify-end space-x-4 pt-4">
+              <Button
+                onClick={() => setIsFormOpen(false)}
+                disabled={saveStatus === "saving"}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-lg transition"
+              >
+                Cancel
+              </Button>
+              <Button
+                disabled={saveStatus === "saving"}
+                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-3 rounded-lg transition"
+              >
+                {saveStatus === "saving" ? (
+                  <>
+                    <FiLoader className="animate-spin mr-2 inline" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save"
+                )}
+              </Button>
+            </div>
+          </form>
+        </div>
       </Modal>
+
+      {selectedUrlMappingId && (
+  <KeyMappingModal
+    isOpen={isKeyMappingModalOpen}
+    onClose={() => {
+      setIsKeyMappingModalOpen(false);
+      setSelectedUrlMappingId(null);
+    }}
+    urlMappingId={selectedUrlMappingId}
+  />
+)}
     </>
   );
 }
