@@ -1,6 +1,6 @@
 //import React from "react";
 import { Route } from "react-router-dom";
-import ApiKeyManagement from "../pages/UserManagement/ApiKeyManagement";
+import ApiKeyManagement from "../pages/ApiManagement/ApiKeyManagement";
 
 export const ApiRoutes = () => (
   <>

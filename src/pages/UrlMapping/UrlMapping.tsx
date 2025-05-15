@@ -194,8 +194,8 @@ export default function UrlMappingManagement() {
   return (
     <>
       <PageMeta title="URL Mapping Management" description="" />
-      <PageBreadcrumb pageTitle="URL Mapping Management" />
-      <ComponentCard title="Manage URL Mappings" className="shadow-xl rounded-3xl border border-gray-200 dark:border-gray-700">
+      {/* <PageBreadcrumb pageTitle="URL Mapping Management" /> */}
+      <ComponentCard title="URL Mapping Management" className="shadow-xl rounded-3xl border border-gray-200 dark:border-gray-700">
         <div className="space-y-6 relative p-6">
           {/* Search and Filter Section */}
           <div className="flex gap-4 items-center w-full">
@@ -230,7 +230,7 @@ export default function UrlMappingManagement() {
                   d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
                 />
               </svg>
-              <span className="hidden sm:inline">Filters</span>
+              {/* <span className="hidden sm:inline">Filters</span> */}
             </Button>
             <Button
               onClick={() => setIsFormOpen(true)}
@@ -248,25 +248,29 @@ export default function UrlMappingManagement() {
                 onClick={() => setIsFilterOpen(false)}
               />
               <div
-                className="fixed top-20 right-0 h-[calc(100%-5rem)] w-96 bg-white dark:bg-gray-900 shadow-2xl transition-transform duration-300 ease-in-out z-50 rounded-l-3xl p-8 flex flex-col"
+                className="fixed top-13 right-0 h-[calc(100%-5rem)] w-96 bg-white dark:bg-gray-900 shadow-2xl transition-transform duration-300 ease-in-out z-50 rounded-l-3xl flex flex-col"
                 style={{ minHeight: "calc(100vh - 5rem)" }}
               >
-                <div className="flex justify-between items-center mb-8">
-                  <h3 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-                    Advanced Filters
-                  </h3>
-                  <button
-                    onClick={() => setIsFilterOpen(false)}
-                    className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"
-                    aria-label="Close filter panel"
-                  >
-                    <FiX className="w-7 h-7" />
-                  </button>
+                {/* Filter Header */}
+                <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                      Advanced Filters
+                    </h3>
+                    <button
+                      onClick={() => setIsFilterOpen(false)}
+                      className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"
+                      aria-label="Close filter panel"
+                    >
+                      <FiX className="w-6 h-6" />
+                    </button>
+                  </div>
                 </div>
 
-                <div className="space-y-8 flex-1 overflow-y-auto pr-6">
-                  <div className="space-y-6">
-                    <h4 className="text-base font-semibold text-gray-500 uppercase dark:text-gray-400 tracking-wide">
+                {/* Filter Body - Scrollable Content */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-semibold text-gray-500 uppercase dark:text-gray-400 tracking-wider">
                       URL Filters
                     </h4>
                     <div className="space-y-4">
@@ -277,7 +281,7 @@ export default function UrlMappingManagement() {
                           name="incomingurl"
                           value={filters.incomingurl}
                           onChange={handleFilterChange}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                          className="mt-1 block w-full p-3 border border-gray-300 rounded-xl dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                         />
                       </label>
                       <label className="block">
@@ -287,47 +291,45 @@ export default function UrlMappingManagement() {
                           name="mappedurl"
                           value={filters.mappedurl}
                           onChange={handleFilterChange}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                          className="mt-1 block w-full p-3 border border-gray-300 rounded-xl dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                         />
                       </label>
                     </div>
                   </div>
 
-                  <div className="space-y-6">
-                    <h4 className="text-base font-semibold text-gray-500 uppercase dark:text-gray-400 tracking-wide">
-                      Status Filters
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-semibold text-gray-500 uppercase dark:text-gray-400 tracking-wider">
+                      Active
                     </h4>
-                    <div className="space-y-4">
-                      <label className="flex items-center space-x-4 group">
-                        <div className="relative flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={filters.isactive === 1}
-                            onChange={() =>
-                              setFilters((prev) => ({
-                                ...prev,
-                                isactive: prev.isactive === 1 ? -1 : 1,
-                              }))
-                            }
-                            className="w-6 h-6 text-blue-600 border-gray-300 rounded focus:ring-blue-500 group-hover:border-blue-400 dark:bg-gray-800 dark:border-gray-700"
-                          />
-                        </div>
-                        <span className="text-gray-700 group-hover:text-gray-900 text-lg dark:text-gray-300 dark:group-hover:text-white">
-                          Active
-                        </span>
-                      </label>
-                    </div>
+                    <select
+                      value={filters.isactive === 1 ? "yes" : filters.isactive === 0 ? "no" : "all"}
+                      onChange={(e) => {
+                        setFilters({
+                          ...filters,
+                          isactive: e.target.value === "yes" ? 1 : e.target.value === "no" ? 0 : -1
+                        });
+                      }}
+                      className="w-full p-4 border border-gray-300 rounded-xl dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                    >
+                      <option value="all">All</option>
+                      <option value="yes">Active</option>
+                      <option value="no">Inactive</option>
+                    </select>
                   </div>
+                </div>
 
-                  <div className="flex space-x-4 border-t border-gray-200 dark:border-gray-700 pt-8">
+                {/* Filter Footer - Fixed at Bottom */}
+                <div className="p-6 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex space-x-4">
                     <Button
-                      onClick={() =>
+                      onClick={() => {
                         setFilters({
                           incomingurl: "",
                           mappedurl: "",
                           isactive: -1,
-                        })
-                      }
+                        });
+                        setCurrentPage(1);
+                      }}
                       className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-white py-4 text-lg rounded-2xl transition"
                     >
                       Clear All
@@ -389,81 +391,81 @@ export default function UrlMappingManagement() {
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                {currentUrlMappings.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="text-center py-6 text-gray-500 dark:text-gray-400">
-                      No requests found matching the criteria.
-                    </td>
-                  </tr>
-                ) : (
-                  currentUrlMappings.map((mapping) => (
-                    <tr
-                      key={mapping.id || Math.random()}
-                      className={`hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${highlightedItem === mapping.id ? "bg-yellow-100 dark:bg-yellow-900" : ""
-                        }`}
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white">
-                        {mapping.incomingurl}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white">
-                        {mapping.mappedurl}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        {mapping.isactive ? "Yes" : "No"}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        <div className="flex space-x-2">
-                          <Button
-                            className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2 rounded-lg shadow-md transition duration-300"
-                            onClick={() => {
-                              setFormData(mapping);
-                              setIsFormOpen(true);
-                            }}
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-5 w-5"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                              strokeWidth={2}
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M11 5H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                              />
-                            </svg>
-                          </Button>
-                          <Button
-                            className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white px-4 py-2 rounded-lg shadow-md transition duration-300"
-                            onClick={() => {
-                              if (mapping.id) {
-                                setSelectedUrlMappingId(mapping.id);
-                                setIsKeyMappingModalOpen(true);
-                              }
-                            }}
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-5 w-5"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                              strokeWidth={2}
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
-                              />
-                            </svg>
-                          </Button>
-                        </div>
+                  {currentUrlMappings.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="text-center py-6 text-gray-500 dark:text-gray-400">
+                        No requests found matching the criteria.
                       </td>
                     </tr>
-                  ))
-                )}
+                  ) : (
+                    currentUrlMappings.map((mapping) => (
+                      <tr
+                        key={mapping.id || Math.random()}
+                        className={`hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${highlightedItem === mapping.id ? "bg-yellow-100 dark:bg-yellow-900" : ""
+                          }`}
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white">
+                          {mapping.incomingurl}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white">
+                          {mapping.mappedurl}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                          {mapping.isactive ? "Yes" : "No"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                          <div className="flex space-x-2">
+                            <Button
+                              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2 rounded-lg shadow-md transition duration-300"
+                              onClick={() => {
+                                setFormData(mapping);
+                                setIsFormOpen(true);
+                              }}
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-5 w-5"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                strokeWidth={2}
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M11 5H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                />
+                              </svg>
+                            </Button>
+                            <Button
+                              className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white px-4 py-2 rounded-lg shadow-md transition duration-300"
+                              onClick={() => {
+                                if (mapping.id) {
+                                  setSelectedUrlMappingId(mapping.id);
+                                  setIsKeyMappingModalOpen(true);
+                                }
+                              }}
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-5 w-5"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                strokeWidth={2}
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                                />
+                              </svg>
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -631,15 +633,15 @@ export default function UrlMappingManagement() {
       </Modal>
 
       {selectedUrlMappingId && (
-  <KeyMappingModal
-    isOpen={isKeyMappingModalOpen}
-    onClose={() => {
-      setIsKeyMappingModalOpen(false);
-      setSelectedUrlMappingId(null);
-    }}
-    urlMappingId={selectedUrlMappingId}
-  />
-)}
+        <KeyMappingModal
+          isOpen={isKeyMappingModalOpen}
+          onClose={() => {
+            setIsKeyMappingModalOpen(false);
+            setSelectedUrlMappingId(null);
+          }}
+          urlMappingId={selectedUrlMappingId}
+        />
+      )}
     </>
   );
 }

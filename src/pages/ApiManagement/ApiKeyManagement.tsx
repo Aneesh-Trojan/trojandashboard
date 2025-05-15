@@ -34,10 +34,10 @@ export default function ApiKeyManagement() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [filters, setFilters] = useState({
-    isActive: false,
-    isIpCheck: false,
-    isCountryCheck: false,
-    isRegionCheck: false,
+    isActive: 'all',
+    isIpCheck: 'all',
+    isCountryCheck: 'all',
+    isRegionCheck: 'all',
   });
   const [currentPage, setCurrentPage] = useState(1);
   const apiKeysPerPage = 8;
@@ -47,10 +47,10 @@ export default function ApiKeyManagement() {
 
   const { data: searchApiKeys, refetch } = useSearchApiKeysQuery({
     clientName: searchQuery,
-    isActive: filters.isActive ? 1 : -1,
-    isIpCheck: filters.isIpCheck ? 1 : -1,
-    isCountryCheck: filters.isCountryCheck ? 1 : -1,
-    isRegionCheck: filters.isRegionCheck ? 1 : -1,
+    isActive: filters.isActive === 'yes' ? 1 : filters.isActive === 'no' ? 0 : -1,
+    isIpCheck: filters.isIpCheck === 'yes' ? 1 : filters.isIpCheck === 'no' ? 0 : -1,
+    isCountryCheck: filters.isCountryCheck === 'yes' ? 1 : filters.isCountryCheck === 'no' ? 0 : -1,
+    isRegionCheck: filters.isRegionCheck === 'yes' ? 1 : filters.isRegionCheck === 'no' ? 0 : -1,
   });
 
   const [saveApiKey] = useSaveApiKeyMutation();
@@ -120,9 +120,9 @@ export default function ApiKeyManagement() {
     setCurrentPage(1);
   };
 
-  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = e.target;
-    setFilters((prev) => ({ ...prev, [name]: checked }));
+  const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFilters((prev) => ({ ...prev, [name]: value }));
     setCurrentPage(1);
   };
 
@@ -145,35 +145,47 @@ export default function ApiKeyManagement() {
   const filteredApiKeys = useMemo(() => {
     return apiKeys.filter((key) => {
       const matchesSearch = key.clientName.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesActive = !filters.isActive || key.isActive;
-      const matchesIpCheck = !filters.isIpCheck || key.isIpCheck;
-      const matchesCountryCheck = !filters.isCountryCheck || key.isCountryCheck;
-      const matchesRegionCheck = !filters.isRegionCheck || key.isRegionCheck;
+      const matchesActive =
+        filters.isActive === "all" ||
+        (filters.isActive === "yes" && key.isActive) ||
+        (filters.isActive === "no" && !key.isActive);
+      const matchesIpCheck =
+        filters.isIpCheck === "all" ||
+        (filters.isIpCheck === "yes" && key.isIpCheck) ||
+        (filters.isIpCheck === "no" && !key.isIpCheck);
+      const matchesCountryCheck =
+        filters.isCountryCheck === "all" ||
+        (filters.isCountryCheck === "yes" && key.isCountryCheck) ||
+        (filters.isCountryCheck === "no" && !key.isCountryCheck);
+      const matchesRegionCheck =
+        filters.isRegionCheck === "all" ||
+        (filters.isRegionCheck === "yes" && key.isRegionCheck) ||
+        (filters.isRegionCheck === "no" && !key.isRegionCheck);
       return matchesSearch && matchesActive && matchesIpCheck && matchesCountryCheck && matchesRegionCheck;
     });
   }, [apiKeys, searchQuery, filters]);
 
-const sortedApiKeys = useMemo(() => {
-  if (!sortColumn) return filteredApiKeys;
+  const sortedApiKeys = useMemo(() => {
+    if (!sortColumn) return filteredApiKeys;
 
-  return [...filteredApiKeys].sort((a, b) => {
-    let aValue: any = a[sortColumn as keyof ApiKey];
-    let bValue: any = b[sortColumn as keyof ApiKey];
+    return [...filteredApiKeys].sort((a, b) => {
+      let aValue: any = a[sortColumn as keyof ApiKey];
+      let bValue: any = b[sortColumn as keyof ApiKey];
 
-    if (aValue === null || aValue === undefined) return sortDirection === "asc" ? -1 : 1;
-    if (bValue === null || bValue === undefined) return sortDirection === "asc" ? 1 : -1;
+      if (aValue === null || aValue === undefined) return sortDirection === "asc" ? -1 : 1;
+      if (bValue === null || bValue === undefined) return sortDirection === "asc" ? 1 : -1;
 
-    if (typeof aValue === "boolean") aValue = aValue ? 1 : 0;
-    if (typeof bValue === "boolean") bValue = bValue ? 1 : 0;
+      if (typeof aValue === "boolean") aValue = aValue ? 1 : 0;
+      if (typeof bValue === "boolean") bValue = bValue ? 1 : 0;
 
-    if (typeof aValue === "string") aValue = aValue.trim().toLowerCase();
-    if (typeof bValue === "string") bValue = bValue.trim().toLowerCase();
+      if (typeof aValue === "string") aValue = aValue.trim().toLowerCase();
+      if (typeof bValue === "string") bValue = bValue.trim().toLowerCase();
 
-    if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
-    if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
-    return 0;
-  });
-}, [filteredApiKeys, sortColumn, sortDirection]);
+      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [filteredApiKeys, sortColumn, sortDirection]);
 
   const totalPages = Math.ceil(sortedApiKeys.length / apiKeysPerPage);
   const currentApiKeys = useMemo(() => {
@@ -184,8 +196,8 @@ const sortedApiKeys = useMemo(() => {
   return (
     <>
       <PageMeta title="API Key Management" description="" />
-      <PageBreadcrumb pageTitle="API Key Management" />
-      <ComponentCard title="Manage API Keys" className="shadow-xl rounded-3xl border border-gray-200 dark:border-gray-700">
+      {/* <PageBreadcrumb pageTitle="API Key Management" /> */}
+      <ComponentCard title="API Key Management" className="shadow-xl rounded-3xl border border-gray-200 dark:border-gray-700">
         <div className="space-y-6 relative p-6">
           {/* Search and Filter Section */}
           <div className="flex gap-4 items-center w-full">
@@ -220,7 +232,7 @@ const sortedApiKeys = useMemo(() => {
                   d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
                 />
               </svg>
-              <span className="hidden sm:inline">Filters</span>
+              {/* <span className="sm-inline text-gray-700">Filters</span> */}
             </Button>
             <Button
               onClick={() => setIsFormOpen(true)}
@@ -238,64 +250,102 @@ const sortedApiKeys = useMemo(() => {
                 onClick={() => setIsFilterOpen(false)}
               />
               <div
-                className="fixed top-20 right-0 h-[calc(100%-5rem)] w-96 bg-white dark:bg-gray-900 shadow-2xl transition-transform duration-300 ease-in-out z-50 rounded-l-3xl p-8 flex flex-col"
+                className="fixed top-13 right-0 h-[calc(100%-5rem)] w-96 bg-white dark:bg-gray-900 shadow-2xl transition-transform duration-300 ease-in-out z-50 rounded-l-3xl flex flex-col"
                 style={{ minHeight: "calc(100vh - 5rem)" }}
               >
-                <div className="flex justify-between items-center mb-8">
-                  <h3 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-                    Advanced Filters
-                  </h3>
-                  <button
-                    onClick={() => setIsFilterOpen(false)}
-                    className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"
-                    aria-label="Close filter panel"
-                  >
-                    <FiX className="w-7 h-7" />
-                  </button>
+                {/* Filter Header */}
+                <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                      Advanced Filters
+                    </h3>
+                    <button
+                      onClick={() => setIsFilterOpen(false)}
+                      className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"
+                      aria-label="Close filter panel"
+                    >
+                      <FiX className="w-6 h-6" />
+                    </button>
+                  </div>
                 </div>
 
-                <div className="space-y-8 flex-1 overflow-y-auto pr-6">
-                  <div className="space-y-6">
-                    <h4 className="text-base font-semibold text-gray-500 uppercase dark:text-gray-400 tracking-wide">
-                      Status Filters
+                {/* Filter Body - Scrollable Content */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-semibold text-gray-500 uppercase dark:text-gray-400 tracking-wider">
+                      Active
                     </h4>
-                    <div className="space-y-4">
-                      {[
-                        { label: "Active", key: "isActive" },
-                        { label: "IP Check", key: "isIpCheck" },
-                        { label: "Country Check", key: "isCountryCheck" },
-                        { label: "Region Check", key: "isRegionCheck" },
-                      ].map((filter) => (
-                        <label key={filter.key} className="flex items-center space-x-4 group">
-                          <div className="relative flex items-center">
-                            <input
-                              type="checkbox"
-                              checked={filters[filter.key as keyof typeof filters]}
-                              onChange={() =>
-                                setFilters((prev) => ({
-                                  ...prev,
-                                  [filter.key]: !prev[filter.key as keyof typeof filters],
-                                }))
-                              }
-                              className="w-6 h-6 text-blue-600 border-gray-300 rounded focus:ring-blue-500 group-hover:border-blue-400 dark:bg-gray-800 dark:border-gray-700"
-                            />
-                          </div>
-                          <span className="text-gray-700 group-hover:text-gray-900 text-lg dark:text-gray-300 dark:group-hover:text-white">
-                            {filter.label}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
+                    <select
+                      value={filters.isActive}
+                      name="isActive"
+                      onChange={handleFilterChange}
+                      className="w-full p-4 border border-gray-300 rounded-xl dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                    >
+                      <option value="all">All</option>
+                      <option value="yes">Yes</option>
+                      <option value="no">No</option>
+                    </select>
                   </div>
 
-                  <div className="flex space-x-4 border-t border-gray-200 dark:border-gray-700 pt-8">
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-semibold text-gray-500 uppercase dark:text-gray-400 tracking-wider">
+                      IP Check
+                    </h4>
+                    <select
+                      value={filters.isIpCheck}
+                      name="isIpCheck"
+                      onChange={handleFilterChange}
+                      className="w-full p-4 border border-gray-300 rounded-xl dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                    >
+                      <option value="all">All</option>
+                      <option value="yes">Yes</option>
+                      <option value="no">No</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-semibold text-gray-500 uppercase dark:text-gray-400 tracking-wider">
+                      Country Check
+                    </h4>
+                    <select
+                      value={filters.isCountryCheck}
+                      name="isCountryCheck"
+                      onChange={handleFilterChange}
+                      className="w-full p-4 border border-gray-300 rounded-xl dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                    >
+                      <option value="all">All</option>
+                      <option value="yes">Yes</option>
+                      <option value="no">No</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-semibold text-gray-500 uppercase dark:text-gray-400 tracking-wider">
+                      Region Check
+                    </h4>
+                    <select
+                      value={filters.isRegionCheck}
+                      name="isRegionCheck"
+                      onChange={handleFilterChange}
+                      className="w-full p-4 border border-gray-300 rounded-xl dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                    >
+                      <option value="all">All</option>
+                      <option value="yes">Yes</option>
+                      <option value="no">No</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Filter Footer - Fixed at Bottom */}
+                <div className="p-6 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex space-x-4">
                     <Button
                       onClick={() =>
                         setFilters({
-                          isActive: false,
-                          isIpCheck: false,
-                          isCountryCheck: false,
-                          isRegionCheck: false,
+                          isActive: "all",
+                          isIpCheck: "all",
+                          isCountryCheck: "all",
+                          isRegionCheck: "all",
                         })
                       }
                       className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-white py-4 text-lg rounded-2xl transition"
@@ -508,11 +558,11 @@ const sortedApiKeys = useMemo(() => {
         className="max-w-md rounded-3xl overflow-hidden shadow-2xl"
       >
         <div className="p-8 bg-white dark:bg-gray-900 rounded-3xl">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white/90 tracking-tight">
-                {formData.apiKey ? "Edit API Key" : "Add New API Key"}
-              </h2>
-            </div>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white/90 tracking-tight">
+              {formData.apiKey ? "Edit API Key" : "Add New API Key"}
+            </h2>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>

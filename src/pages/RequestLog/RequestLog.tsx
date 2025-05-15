@@ -100,9 +100,9 @@ export default function RequestLogManagement() {
 
       // Date filter logic
       const logDate = new Date(log.createdAt);
-      const matchesDate = 
+      const matchesDate =
         (!filters.startDate || logDate >= new Date(filters.startDate)) &&
-        (!filters.endDate || logDate <= new Date(filters.endDate));
+        (!filters.endDate || logDate <= new Date(new Date(logDate).setHours(23, 59, 59, 999)));
 
       return matchesSearch && matchesDate;
     });
@@ -182,399 +182,406 @@ export default function RequestLogManagement() {
   return (
     <>
       <PageMeta title="Request Log Management" description="" />
-      <PageBreadcrumb pageTitle="Request Log Management" />
-      <ComponentCard title="Manage Request Logs" className="shadow-xl rounded-3xl border border-gray-200 dark:border-gray-700">
+      {/* <PageBreadcrumb pageTitle="Request Log Management" /> */}
+      <ComponentCard title="Request Log Management" className="shadow-xl rounded-3xl border border-gray-200 dark:border-gray-700">
 
-      <div className="space-y-6 relative p-6">
-        {/* Search and Filter Section */}
-        <div className="flex gap-4 items-center w-full">
-          <div className="relative flex-1">
-            <div className="flex rounded-full shadow-md hover:shadow-lg transition-shadow w-full bg-gray-100 dark:bg-gray-800">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
-                <FiSearch className="w-5 h-5" />
-              </span>
-              <input
-                type="text"
-                placeholder="Search request logs..."
-                value={searchQuery}
-                onChange={handleSearchChange}
-                className="w-full py-3 pl-12 pr-4 border-0 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg bg-transparent text-base bg-white dark:bg-gray-700 dark:text-white"
-              />
+        <div className="space-y-6 relative p-6">
+          {/* Search and Filter Section */}
+          <div className="flex gap-4 items-center w-full">
+            <div className="relative flex-1">
+              <div className="flex rounded-full shadow-md hover:shadow-lg transition-shadow w-full bg-gray-100 dark:bg-gray-800">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                  <FiSearch className="w-5 h-5" />
+                </span>
+                <input
+                  type="text"
+                  placeholder="Search request logs..."
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  className="w-full py-3 pl-12 pr-4 border-0 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg bg-transparent text-base bg-white dark:bg-gray-700 dark:text-white"
+                />
+              </div>
             </div>
+            <Button
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className="px-6 py-3 border rounded-full bg-white hover:bg-gray-50 text-gray-700 hover:text-gray-900 shadow-md transition-colors flex items-center gap-2 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:bg-gray-700"
+            >
+              <svg
+                className="w-6 h-6 text-gray-700 dark:text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                />
+              </svg>
+              {/* <span className="hidden sm:inline">Filters</span> */}
+            </Button>
           </div>
-          <Button
-            onClick={() => setIsFilterOpen(!isFilterOpen)}
-            className="px-6 py-3 border rounded-full bg-white hover:bg-gray-50 text-gray-700 hover:text-gray-900 shadow-md transition-colors flex items-center gap-2 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:bg-gray-700"
-          >
-            <svg
-              className="w-6 h-6 text-gray-700 dark:text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+
+          {/* Filter Panel */}
+          {isFilterOpen && (
+            <>
+              <div
+                className="fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity"
+                onClick={() => setIsFilterOpen(false)}
               />
-            </svg>
-            <span className="hidden sm:inline">Filters</span>
-          </Button>
-        </div>
-
-        {/* Filter Panel */}
-        {isFilterOpen && (
-          <>
-            <div
-              className="fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity"
-              onClick={() => setIsFilterOpen(false)}
-            />
-            <div
-              className="fixed top-20 right-0 h-[calc(100%-5rem)] w-96 bg-white dark:bg-gray-900 shadow-2xl transition-transform duration-300 ease-in-out z-50 rounded-l-3xl p-8 flex flex-col"
-              style={{ minHeight: "calc(100vh - 5rem)" }}
-            >
-              <div className="flex justify-between items-center mb-8">
-                <h3 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-                  Advanced Filters
-                </h3>
-                <button
-                  onClick={() => setIsFilterOpen(false)}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"
-                  aria-label="Close filter panel"
-                >
-                  <FiX className="w-7 h-7" />
-                </button>
-              </div>
-
-              <div className="space-y-8 flex-1 overflow-y-auto pr-6">
-                <div className="space-y-6">
-                  <h4 className="text-base font-semibold text-gray-500 uppercase dark:text-gray-400 tracking-wide">
-                    Filters
-                  </h4>
-                  <div className="space-y-4">
-                    <input
-                      type="text"
-                      name="url"
-                      placeholder="URL"
-                      value={filters.url}
-                      onChange={handleFilterChange}
-                      className="w-full p-4 border border-gray-300 rounded-xl dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                    />
-                    <input
-                      type="text"
-                      name="httpmethod"
-                      placeholder="HTTP Method"
-                      value={filters.httpmethod}
-                      onChange={handleFilterChange}
-                      className="w-full p-4 border border-gray-300 rounded-xl dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                    />
-                    <input
-                      type="text"
-                      name="ipaddress"
-                      placeholder="IP Address"
-                      value={filters.ipaddress}
-                      onChange={handleFilterChange}
-                      className="w-full p-4 border border-gray-300 rounded-xl dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                    />
-                  </div>
-                </div>
-
-                {/* Date Range Filter */}
-                <div className="space-y-6">
-                  <h4 className="text-base font-semibold text-gray-500 uppercase dark:text-gray-400 tracking-wide">
-                    Date Range
-                  </h4>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        From
-                      </label>
-                      <DatePicker
-                        selected={filters.startDate}
-                        onChange={(date: Date | null) => {
-                          if (date && filters.endDate && date > filters.endDate) {
-                            setDateError("Start date can't be after end date");
-                          } else {
-                            setDateError(null);
-                            setFilters({...filters, startDate: date});
-                          }
-                        }}
-                        selectsStart
-                        startDate={filters.startDate}
-                        endDate={filters.endDate}
-                        maxDate={filters.endDate || new Date()}
-                        placeholderText="Select start date"
-                        className="w-full p-3 border border-gray-300 rounded-xl dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                        wrapperClassName="w-full"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        To
-                      </label>
-                      <DatePicker
-                        selected={filters.endDate}
-                        onChange={(date: Date | null) => {
-                          if (date && filters.startDate && date < filters.startDate) {
-                            setDateError("End date can't be before start date");
-                          } else {
-                            setDateError(null);
-                            setFilters({...filters, endDate: date});
-                          }
-                        }}
-                        selectsEnd
-                        startDate={filters.startDate}
-                        endDate={filters.endDate}
-                        minDate={filters.startDate || undefined}
-                        maxDate={new Date()}
-                        placeholderText="Select end date"
-                        className="w-full p-3 border border-gray-300 rounded-xl dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                        wrapperClassName="w-full"
-                      />
-                    </div>
-                    {dateError && (
-                      <div className="text-red-500 text-sm mt-2">
-                        {dateError}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex space-x-4 border-t border-gray-200 dark:border-gray-700 pt-8">
-                  <Button
-                    onClick={() => {
-                      setFilters({
-                        url: "",
-                        httpmethod: "",
-                        ipaddress: "",
-                        startDate: null,
-                        endDate: null,
-                      });
-                      setDateError(null);
-                      setCurrentPage(1);
-                    }}
-                    className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-white py-4 text-lg rounded-2xl transition"
-                  >
-                    Clear All
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      setIsFilterOpen(false);
-                      refetch();
-                    }}
-                    className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-4 text-lg rounded-2xl transition"
-                  >
-                    Apply Filters
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Table */}
-        <div className="overflow-hidden rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-800">
-                <tr>
-                <th
-                    scope="col"
-                    className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    onClick={() => handleSort('requestLogId')}
-                  >
-                    <div className="flex items-center">
-                      Request Log Id
-                      {getSortIcon('requestLogId')}
-                    </div>
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    onClick={() => handleSort('url')}
-                  >
-                    <div className="flex items-center">
-                      URL
-                      {getSortIcon('url')}
-                    </div>
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    onClick={() => handleSort('clientName')}
-                  >
-                    <div className="flex items-center">
-                     Client Name
-                      {getSortIcon('clientName')}
-                    </div>
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    onClick={() => handleSort('responseStatusCode')}
-                  >
-                    <div className="flex items-center">
-                      Response Status Code
-                      {getSortIcon('responseStatusCode')}
-                    </div>
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    onClick={() => handleSort('httpMethod')}
-                  >
-                    <div className="flex items-center">
-                      HTTP Method
-                      {getSortIcon('httpMethod')}
-                    </div>
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    onClick={() => handleSort('ipAddress')}
-                  >
-                    <div className="flex items-center">
-                      IP Address
-                      {getSortIcon('ipAddress')}
-                    </div>
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    onClick={() => handleSort('createdAt')}
-                  >
-                    <div className="flex items-center">
-                      Created At
-                      {getSortIcon('createdAt')}
-                    </div>
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                {currentRequestLogs.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="text-center py-6 text-gray-500 dark:text-gray-400">
-                      No requests found matching the criteria.
-                    </td>
-                  </tr>
-                ) : (
-                  currentRequestLogs.map((log) => (
-                    <tr 
-                      key={log.requestLogId} 
-                      className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              <div
+                className="fixed top-13 right-0 h-[calc(100%-5rem)] w-96 bg-white dark:bg-gray-900 shadow-2xl transition-transform duration-300 ease-in-out z-50 rounded-l-3xl flex flex-col"
+                style={{ minHeight: "calc(100vh - 5rem)" }}
+              >
+                {/* Filter Header */}
+                <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                      Advanced Filters
+                    </h3>
+                    <button
+                      onClick={() => setIsFilterOpen(false)}
+                      className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"
+                      aria-label="Close filter panel"
                     >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900 dark:text-white/90">
-                          {log.requestLogId || 'N/A'}
+                      <FiX className="w-6 h-6" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Filter Body - Scrollable Content */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-semibold text-gray-500 uppercase dark:text-gray-400 tracking-wider">
+                      Request Filters
+                    </h4>
+                    <div className="space-y-4">
+                      <label className="block">
+                        <span className="text-gray-700 dark:text-gray-300">URL</span>
+                        <input
+                          type="text"
+                          name="url"
+                          value={filters.url}
+                          onChange={handleFilterChange}
+                          className="mt-1 block w-full p-3 border border-gray-300 rounded-xl dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="text-gray-700 dark:text-gray-300">HTTP Method</span>
+                        <input
+                          type="text"
+                          name="httpmethod"
+                          value={filters.httpmethod}
+                          onChange={handleFilterChange}
+                          className="mt-1 block w-full p-3 border border-gray-300 rounded-xl dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="text-gray-700 dark:text-gray-300">IP Address</span>
+                        <input
+                          type="text"
+                          name="ipaddress"
+                          value={filters.ipaddress}
+                          onChange={handleFilterChange}
+                          className="mt-1 block w-full p-3 border border-gray-300 rounded-xl dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-semibold text-gray-500 uppercase dark:text-gray-400 tracking-wider">
+                      Date Range
+                    </h4>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          From
+                        </label>
+                        <DatePicker
+                          selected={filters.startDate}
+                          onChange={(date: Date | null) => {
+                            if (date && filters.endDate && date > filters.endDate) {
+                              setDateError("Start date can't be after end date");
+                            } else {
+                              setDateError(null);
+                              setFilters({ ...filters, startDate: date });
+                            }
+                          }}
+                          selectsStart
+                          startDate={filters.startDate}
+                          endDate={filters.endDate}
+                          maxDate={filters.endDate || new Date()}
+                          placeholderText="Select start date"
+                          className="w-full p-3 border border-gray-300 rounded-xl dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                          wrapperClassName="w-full"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          To
+                        </label>
+                        <DatePicker
+                          selected={filters.endDate}
+                          onChange={(date: Date | null) => {
+                            if (date && filters.startDate && date < filters.startDate) {
+                              setDateError("End date can't be before start date");
+                            } else {
+                              setDateError(null);
+                              setFilters({ ...filters, endDate: date });
+                            }
+                          }}
+                          selectsEnd
+                          startDate={filters.startDate}
+                          endDate={filters.endDate}
+                          minDate={filters.startDate || undefined}
+                          maxDate={new Date()}
+                          placeholderText="Select end date"
+                          className="w-full p-3 border border-gray-300 rounded-xl dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                          wrapperClassName="w-full"
+                        />
+                      </div>
+                      {dateError && (
+                        <div className="text-red-500 text-sm mt-1">
+                          {dateError}
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900 dark:text-white/90">
-                          {log.url || 'N/A'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {log.clientName || 'N/A'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {log.responseStatusCode || 'N/A'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {log.httpMethod || 'N/A'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {log.ipAddress || 'N/A'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {log.createdAt ? new Date(log.createdAt).toLocaleString() : 'N/A'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Button
-                          onClick={() => handleViewDetails(log.requestLogId)}
-                        >
-                          <FcViewDetails className="text-xl" />
-                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Filter Footer - Fixed at Bottom */}
+                <div className="p-6 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex space-x-4">
+                    <Button
+                      onClick={() => {
+                        setFilters({
+                          url: "",
+                          httpmethod: "",
+                          ipaddress: "",
+                          startDate: null,
+                          endDate: null,
+                        });
+                        setDateError(null);
+                        setCurrentPage(1);
+                      }}
+                      className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-white py-4 text-lg rounded-2xl transition"
+                    >
+                      Clear All
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setIsFilterOpen(false);
+                        refetch();
+                      }}
+                      className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-4 text-lg rounded-2xl transition"
+                    >
+                      Apply Filters
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+          {/* Table */}
+          <div className="overflow-hidden rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-800">
+                  <tr>
+                    <th
+                      scope="col"
+                      className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      onClick={() => handleSort('requestLogId')}
+                    >
+                      <div className="flex items-center">
+                        Request Log Id
+                        {getSortIcon('requestLogId')}
+                      </div>
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      onClick={() => handleSort('url')}
+                    >
+                      <div className="flex items-center">
+                        URL
+                        {getSortIcon('url')}
+                      </div>
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      onClick={() => handleSort('clientName')}
+                    >
+                      <div className="flex items-center">
+                        Client Name
+                        {getSortIcon('clientName')}
+                      </div>
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      onClick={() => handleSort('responseStatusCode')}
+                    >
+                      <div className="flex items-center">
+                        Response Status Code
+                        {getSortIcon('responseStatusCode')}
+                      </div>
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      onClick={() => handleSort('httpMethod')}
+                    >
+                      <div className="flex items-center">
+                        HTTP Method
+                        {getSortIcon('httpMethod')}
+                      </div>
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      onClick={() => handleSort('ipAddress')}
+                    >
+                      <div className="flex items-center">
+                        IP Address
+                        {getSortIcon('ipAddress')}
+                      </div>
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      onClick={() => handleSort('createdAt')}
+                    >
+                      <div className="flex items-center">
+                        Created At
+                        {getSortIcon('createdAt')}
+                      </div>
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                  {currentRequestLogs.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="text-center py-6 text-gray-500 dark:text-gray-400">
+                        No requests found matching the criteria.
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    currentRequestLogs.map((log) => (
+                      <tr
+                        key={log.requestLogId}
+                        className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white/90">
+                            {log.requestLogId || 'N/A'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white/90">
+                            {log.url || 'N/A'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {log.clientName || 'N/A'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {log.responseStatusCode || 'N/A'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {log.httpMethod || 'N/A'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {log.ipAddress || 'N/A'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {log.createdAt ? new Date(log.createdAt).toLocaleString() : 'N/A'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Button
+                            onClick={() => handleViewDetails(log.requestLogId)}
+                          >
+                            <FcViewDetails className="text-xl" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          {/* Pagination */}
+          <div className="flex justify-center gap-2 sm:gap-3 mt-4 sm:mt-6">
+            <Button
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className={`px-3 sm:px-4 py-1 sm:py-2 rounded-lg shadow-md transition duration-300 ${currentPage === 1
+                  ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
+                }`}
+              aria-label="Go to first page"
+            >
+              {"<<"}
+            </Button>
+            <Button
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 1}
+              className={`px-3 sm:px-4 py-1 sm:py-2 rounded-lg shadow-md transition duration-300 ${currentPage === 1
+                  ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
+                }`}
+              aria-label="Go to previous page"
+            >
+              {"<"}
+            </Button>
+            <span className="flex items-center gap-1 sm:gap-2 dark:text-white/40 text-sm sm:text-lg font-medium">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage === totalPages || totalPages === 0}
+              className={`px-3 sm:px-4 py-1 sm:py-2 rounded-lg shadow-md transition duration-300 ${currentPage === totalPages || totalPages === 0
+                  ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
+                }`}
+              aria-label="Go to next page"
+            >
+              {">"}
+            </Button>
+            <Button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages || totalPages === 0}
+              className={`px-3 sm:px-4 py-1 sm:py-2 rounded-lg shadow-md transition duration-300 ${currentPage === totalPages || totalPages === 0
+                  ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
+                }`}
+              aria-label="Go to last page"
+            >
+              {">>"}
+            </Button>
           </div>
         </div>
-        {/* Pagination */}
-        <div className="flex justify-center gap-2 sm:gap-3 mt-4 sm:mt-6">
-          <Button
-            onClick={() => setCurrentPage(1)}
-            disabled={currentPage === 1}
-            className={`px-3 sm:px-4 py-1 sm:py-2 rounded-lg shadow-md transition duration-300 ${
-              currentPage === 1 
-                ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed' 
-                : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
-            }`}
-            aria-label="Go to first page"
-          >
-            {"<<"}
-          </Button>
-          <Button
-            onClick={() => setCurrentPage(currentPage - 1)}
-            disabled={currentPage === 1}
-            className={`px-3 sm:px-4 py-1 sm:py-2 rounded-lg shadow-md transition duration-300 ${
-              currentPage === 1 
-                ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed' 
-                : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
-            }`}
-            aria-label="Go to previous page"
-          >
-            {"<"}
-          </Button>
-          <span className="flex items-center gap-1 sm:gap-2 dark:text-white/40 text-sm sm:text-lg font-medium">
-            Page {currentPage} of {totalPages}
-          </span>
-          <Button
-            onClick={() => setCurrentPage(currentPage + 1)}
-            disabled={currentPage === totalPages || totalPages === 0}
-            className={`px-3 sm:px-4 py-1 sm:py-2 rounded-lg shadow-md transition duration-300 ${
-              currentPage === totalPages || totalPages === 0
-                ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed' 
-                : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
-            }`}
-            aria-label="Go to next page"
-          >
-            {">"}
-          </Button>
-          <Button
-            onClick={() => setCurrentPage(totalPages)}
-            disabled={currentPage === totalPages || totalPages === 0}
-            className={`px-3 sm:px-4 py-1 sm:py-2 rounded-lg shadow-md transition duration-300 ${
-              currentPage === totalPages || totalPages === 0
-                ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed' 
-                : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
-            }`}
-            aria-label="Go to last page"
-          >
-            {">>"}
-          </Button>
-        </div>
-      </div>
-    </ComponentCard>
+      </ComponentCard>
 
       {/* Details Modal */}
       <Modal
@@ -592,7 +599,7 @@ export default function RequestLogManagement() {
               Request Log Details
             </h2>
           </div>
-          
+
           {isDetailsLoading && !currentDetails ? (
             <div className="flex items-center justify-center py-8">
               <FiLoader className="animate-spin text-blue-500 text-2xl mr-2" />
@@ -642,7 +649,7 @@ export default function RequestLogManagement() {
                   </p>
                 </div>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-2 uppercase tracking-wide">
                   Request Params
@@ -653,7 +660,7 @@ export default function RequestLogManagement() {
                   </p>
                 </div>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-2 uppercase tracking-wide">
                   Request Data
@@ -664,7 +671,7 @@ export default function RequestLogManagement() {
                   </p>
                 </div>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-2 uppercase tracking-wide">
                   Response Data

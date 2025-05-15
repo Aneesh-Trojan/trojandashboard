@@ -5,10 +5,10 @@ import IPRateLimitHistoryTable from "../../components/tables/BasicTables/IPRateL
 import { Modal } from "../../components/ui/modal";
 import Button from "../../components/ui/button";
 import PageMeta from "../../components/common/PageMeta";
-import { 
-  useSearchIPRateLimitsQuery, 
-  useSaveIPRateLimitMutation, 
-  useGetIPRateLimitHistoryQuery 
+import {
+  useSearchIPRateLimitsQuery,
+  useSaveIPRateLimitMutation,
+  useGetIPRateLimitHistoryQuery
 } from "../../services/BlockedIpList/ipRateLimit.service";
 import { FiClock, FiUnlock, FiX, FiCheck, FiLoader, FiArrowUp, FiArrowDown, FiSearch, FiLock } from "react-icons/fi";
 import DatePicker from "react-datepicker";
@@ -125,7 +125,7 @@ export default function BlockedIpList() {
       const limitDate = new Date(limit.lastRequestTime);
       const matchesDate =
         (!filters.startDate || limitDate >= new Date(filters.startDate)) &&
-        (!filters.endDate || limitDate <= new Date(filters.endDate));
+        (!filters.endDate || limitDate <= new Date(new Date(limitDate).setHours(23, 59, 59, 999)));
 
       return matchesSearch && matchesStatus && matchesDate;
     });
@@ -179,75 +179,79 @@ export default function BlockedIpList() {
   return (
     <>
       <PageMeta title="Blocked IP List" description="" />
-      <PageBreadcrumb pageTitle="Blocked IP List" />
-      <ComponentCard title="Manage Blocked IPs" className="shadow-xl rounded-3xl border border-gray-200 dark:border-gray-700">
-    
-      {/* <div className="space-y-6 relative p-6 bg-white rounded-2xl shadow-lg dark:bg-gray-900"> */}
-      <div className="space-y-6 relative p-6">
-        {/* Search and Filter Section */}
-        <div className="flex gap-4 items-center w-full">
-          <div className="relative flex-1">
-            <div className="flex rounded-full shadow-md hover:shadow-lg transition-shadow w-full bg-gray-100 dark:bg-gray-800">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
-                <FiSearch className="w-6 h-6" />
-              </span>
-              <input
-                type="text"
-                placeholder="Search IP addresses..."
-                value={searchQuery}
-                onChange={handleSearchChange}
-                className="w-full py-3 pl-14 pr-4 border-0 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg bg-transparent text-base bg-white dark:bg-gray-700 dark:text-white"
-              />
-            </div>
-          </div>
-          <Button
-            onClick={() => setIsFilterOpen(!isFilterOpen)}
-            className="px-6 py-3 border rounded-full bg-white hover:bg-gray-50 text-gray-700 hover:text-gray-900 shadow-md transition-colors flex items-center gap-2 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:bg-gray-700"
-          >
-            <svg
-              className="w-6 h-6 text-gray-700 dark:text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-              />
-            </svg>
-            <span className="hidden sm:inline">Filters</span>
-          </Button>
-        </div>
+      {/* <PageBreadcrumb pageTitle="Blocked IP List" /> */}
+      <ComponentCard title="Blocked IP List" className="shadow-xl rounded-3xl border border-gray-200 dark:border-gray-700">
 
-        {/* Filter Panel */}
-        {isFilterOpen && (
-          <>
-            <div
-              className="fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity"
-              onClick={() => setIsFilterOpen(false)}
-            />
-            <div
-              className="fixed top-20 right-0 h-[calc(100%-5rem)] w-96 bg-white dark:bg-gray-900 shadow-2xl transition-transform duration-300 ease-in-out z-50 rounded-l-3xl p-8 flex flex-col"
-              style={{ minHeight: "calc(100vh - 5rem)" }}
-            >
-              <div className="flex justify-between items-center mb-8">
-                <h3 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-                  Advanced Filters
-                </h3>
-                <button
-                  onClick={() => setIsFilterOpen(false)}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"
-                  aria-label="Close filter panel"
-                >
-                  <FiX className="w-7 h-7" />
-                </button>
+        {/* <div className="space-y-6 relative p-6 bg-white rounded-2xl shadow-lg dark:bg-gray-900"> */}
+        <div className="space-y-6 relative p-6">
+          {/* Search and Filter Section */}
+          <div className="flex gap-4 items-center w-full">
+            <div className="relative flex-1">
+              <div className="flex rounded-full shadow-md hover:shadow-lg transition-shadow w-full bg-gray-100 dark:bg-gray-800">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                  <FiSearch className="w-6 h-6" />
+                </span>
+                <input
+                  type="text"
+                  placeholder="Search IP addresses..."
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  className="w-full py-3 pl-14 pr-4 border-0 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg bg-transparent text-base bg-white dark:bg-gray-700 dark:text-white"
+                />
               </div>
+            </div>
+            <Button
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className="px-6 py-3 border rounded-full bg-white hover:bg-gray-50 text-gray-700 hover:text-gray-900 shadow-md transition-colors flex items-center gap-2 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:bg-gray-700"
+            >
+              <svg
+                className="w-6 h-6 text-gray-700 dark:text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                />
+              </svg>
+              {/* <span className="hidden sm:inline">Filters</span> */}
+            </Button>
+          </div>
 
-                <div className="space-y-8 flex-1 overflow-y-auto pr-6">
-                  <div className="space-y-6">
-                    <h4 className="text-base font-semibold text-gray-500 uppercase dark:text-gray-400 tracking-wide">
+          {/* Filter Panel */}
+          {isFilterOpen && (
+            <>
+              <div
+                className="fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity"
+                onClick={() => setIsFilterOpen(false)}
+              />
+              <div
+                className="fixed top-13 right-0 h-[calc(100%-5rem)] w-96 bg-white dark:bg-gray-900 shadow-2xl transition-transform duration-300 ease-in-out z-50 rounded-l-3xl flex flex-col"
+                style={{ minHeight: "calc(100vh - 5rem)" }}
+              >
+                {/* Filter Header */}
+                <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                      Advanced Filters
+                    </h3>
+                    <button
+                      onClick={() => setIsFilterOpen(false)}
+                      className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"
+                      aria-label="Close filter panel"
+                    >
+                      <FiX className="w-6 h-6" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Filter Body - Scrollable Content */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-semibold text-gray-500 uppercase dark:text-gray-400 tracking-wider">
                       Status Filters
                     </h4>
                     <div className="space-y-4">
@@ -255,7 +259,7 @@ export default function BlockedIpList() {
                         name="isblocked"
                         value={filters.isblocked}
                         onChange={handleFilterChange}
-                        className="w-full p-4 border border-gray-300 rounded-xl dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                        className="w-full p-3 border border-gray-300 rounded-xl dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                       >
                         <option value="">All Statuses</option>
                         <option value="true">Blocked</option>
@@ -264,12 +268,11 @@ export default function BlockedIpList() {
                     </div>
                   </div>
 
-                  {/* Date Range Filter */}
-                  <div className="space-y-6">
-                    <h4 className="text-base font-semibold text-gray-500 uppercase dark:text-gray-400 tracking-wide">
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-semibold text-gray-500 uppercase dark:text-gray-400 tracking-wider">
                       Date Range
                     </h4>
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                           From
@@ -304,23 +307,28 @@ export default function BlockedIpList() {
                         />
                       </div>
                       {dateError && (
-                        <div className="text-red-500 text-sm mt-2">
+                        <div className="text-red-500 text-sm mt-1">
                           {dateError}
                         </div>
                       )}
                     </div>
                   </div>
+                </div>
 
-                  <div className="flex space-x-4 border-t border-gray-200 dark:border-gray-700 pt-8">
+                {/* Filter Footer - Fixed at Bottom */}
+                <div className="p-6 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex space-x-4">
                     <Button
-                      onClick={() =>
+                      onClick={() => {
                         setFilters({
                           ipaddress: "",
                           isblocked: "",
                           startDate: null,
                           endDate: null,
-                        })
-                      }
+                        });
+                        setDateError(null);
+                        setCurrentPage(1);
+                      }}
                       className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-white py-4 text-lg rounded-2xl transition"
                     >
                       Clear All
@@ -336,182 +344,178 @@ export default function BlockedIpList() {
                     </Button>
                   </div>
                 </div>
-            </div>
-          </>
-        )}
+              </div>
+            </>
+          )}
 
-        {/* Table */}
-        <div className="overflow-hidden rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 mt-6">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-800">
-                <tr>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    onClick={() => handleSort("iPaddress")}
-                  >
-                    <div className="flex items-center">
-                      IP Address
-                      {getSortIcon("iPaddress")}
-                    </div>
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    onClick={() => handleSort("requestCount")}
-                  >
-                    <div className="flex items-center">
-                      Request Count
-                      {getSortIcon("requestCount")}
-                    </div>
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    onClick={() => handleSort("latestRequestTime")}
-                  >
-                    <div className="flex items-center">
-                      Latest Request Time
-                      {getSortIcon("latestRequestTime")}
-                    </div>
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    onClick={() => handleSort("isblocked")}
-                  >
-                    <div className="flex items-center">
-                      Status
-                      {getSortIcon("isblocked")}
-                    </div>
-                  </th>
-                  <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                {currentIPRateLimits.length === 0 ? (
+          {/* Table */}
+          <div className="overflow-hidden rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 mt-6">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>
-                    <td colSpan={5} className="text-center py-6 text-gray-500 dark:text-gray-400">
-                      No requests found matching the criteria.
-                    </td>
-                  </tr>
-                ) : (
-                  currentIPRateLimits.map((limit) => (
-                    <tr
-                      key={limit.iPaddress}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    <th
+                      scope="col"
+                      className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      onClick={() => handleSort("iPaddress")}
                     >
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white">
-                        {limit.iPaddress}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        {limit.requestCount ?? 0}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        {limit.lastRequestTime ? new Date(limit.lastRequestTime).toLocaleString() : "N/A"}
-                      </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        {limit.isblocked ? (
-                          <>
-                            <FiLock className="mr-2 text-red-500" />
-                            <span className="text-red-600 dark:text-red-400">Blocked</span>
-                          </>
-                        ) : (
-                          <>
-                            <FiUnlock className="mr-2 text-green-500" />
-                            <span className="text-green-600 dark:text-green-400">Unblocked</span>
-                          </>
-                        )}
+                        IP Address
+                        {getSortIcon("iPaddress")}
                       </div>
-                    </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        <div className="flex gap-2">
-                          <Button
-                            className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2 rounded-lg shadow-md transition duration-300"
-                            onClick={() => handleViewHistory(limit.iPaddress)}
-                          >
-                            <FiClock className="inline mr-1" />
-                            History
-                          </Button>
-                          {limit.isblocked && (
-                            <Button
-                              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-2 rounded-lg shadow-md transition duration-300"
-                              onClick={() => handleUnblockClick(limit.iPaddress)}
-                            >
-                              <FiUnlock className="inline mr-1" />
-                              Unblock
-                            </Button>
-                          )}
-                        </div>
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      onClick={() => handleSort("requestCount")}
+                    >
+                      <div className="flex items-center">
+                        Request Count
+                        {getSortIcon("requestCount")}
+                      </div>
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      onClick={() => handleSort("latestRequestTime")}
+                    >
+                      <div className="flex items-center">
+                        Latest Request Time
+                        {getSortIcon("latestRequestTime")}
+                      </div>
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      onClick={() => handleSort("isblocked")}
+                    >
+                      <div className="flex items-center">
+                        Status
+                        {getSortIcon("isblocked")}
+                      </div>
+                    </th>
+                    <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                  {currentIPRateLimits.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="text-center py-6 text-gray-500 dark:text-gray-400">
+                        No requests found matching the criteria.
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    currentIPRateLimits.map((limit) => (
+                      <tr
+                        key={limit.iPaddress}
+                        className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white">
+                          {limit.iPaddress}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                          {limit.requestCount ?? 0}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                          {limit.lastRequestTime ? new Date(limit.lastRequestTime).toLocaleString() : "N/A"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            {limit.isblocked ? (
+                              <>
+                                <FiLock className="mr-2 text-red-500" />
+                                <span className="text-red-600 dark:text-red-400">Blocked</span>
+                              </>
+                            ) : (
+                              <>
+                                <FiUnlock className="mr-2 text-green-500" />
+                                <span className="text-green-600 dark:text-green-400">Unblocked</span>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                          <div className="flex gap-2">
+                            <Button
+                              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2 rounded-lg shadow-md transition duration-300"
+                              onClick={() => handleViewHistory(limit.iPaddress)}
+                            >
+                              <FiClock className="inline mr-1" />
+                              History
+                            </Button>
+                            {limit.isblocked && (
+                              <Button
+                                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-2 rounded-lg shadow-md transition duration-300"
+                                onClick={() => handleUnblockClick(limit.iPaddress)}
+                              >
+                                <FiUnlock className="inline mr-1" />
+                                Unblock
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Pagination */}
+          <div className="flex justify-center gap-2 sm:gap-3 mt-4 sm:mt-6">
+            <Button
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className={`px-3 sm:px-4 py-1 sm:py-2 rounded-lg shadow-md transition duration-300 ${currentPage === 1
+                  ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
+                }`}
+              aria-label="Go to first page"
+            >
+              {"<<"}
+            </Button>
+            <Button
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 1}
+              className={`px-3 sm:px-4 py-1 sm:py-2 rounded-lg shadow-md transition duration-300 ${currentPage === 1
+                  ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
+                }`}
+              aria-label="Go to previous page"
+            >
+              {"<"}
+            </Button>
+            <span className="flex items-center gap-1 sm:gap-2 dark:text-white/40 text-sm sm:text-lg font-medium">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage === totalPages || totalPages === 0}
+              className={`px-3 sm:px-4 py-1 sm:py-2 rounded-lg shadow-md transition duration-300 ${currentPage === totalPages || totalPages === 0
+                  ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
+                }`}
+              aria-label="Go to next page"
+            >
+              {">"}
+            </Button>
+            <Button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages || totalPages === 0}
+              className={`px-3 sm:px-4 py-1 sm:py-2 rounded-lg shadow-md transition duration-300 ${currentPage === totalPages || totalPages === 0
+                  ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
+                }`}
+              aria-label="Go to last page"
+            >
+              {">>"}
+            </Button>
           </div>
         </div>
-
-        {/* Pagination */}
-        <div className="flex justify-center gap-2 sm:gap-3 mt-4 sm:mt-6">
-          <Button
-            onClick={() => setCurrentPage(1)}
-            disabled={currentPage === 1}
-            className={`px-3 sm:px-4 py-1 sm:py-2 rounded-lg shadow-md transition duration-300 ${
-              currentPage === 1 
-                ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed' 
-                : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
-            }`}
-            aria-label="Go to first page"
-          >
-            {"<<"}
-          </Button>
-          <Button
-            onClick={() => setCurrentPage(currentPage - 1)}
-            disabled={currentPage === 1}
-            className={`px-3 sm:px-4 py-1 sm:py-2 rounded-lg shadow-md transition duration-300 ${
-              currentPage === 1 
-                ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed' 
-                : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
-            }`}
-            aria-label="Go to previous page"
-          >
-            {"<"}
-          </Button>
-          <span className="flex items-center gap-1 sm:gap-2 dark:text-white/40 text-sm sm:text-lg font-medium">
-            Page {currentPage} of {totalPages}
-          </span>
-          <Button
-            onClick={() => setCurrentPage(currentPage + 1)}
-            disabled={currentPage === totalPages || totalPages === 0}
-            className={`px-3 sm:px-4 py-1 sm:py-2 rounded-lg shadow-md transition duration-300 ${
-              currentPage === totalPages || totalPages === 0
-                ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed' 
-                : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
-            }`}
-            aria-label="Go to next page"
-          >
-            {">"}
-          </Button>
-          <Button
-            onClick={() => setCurrentPage(totalPages)}
-            disabled={currentPage === totalPages || totalPages === 0}
-            className={`px-3 sm:px-4 py-1 sm:py-2 rounded-lg shadow-md transition duration-300 ${
-              currentPage === totalPages || totalPages === 0
-                ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed' 
-                : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
-            }`}
-            aria-label="Go to last page"
-          >
-            {">>"}
-          </Button>
-        </div>
-      </div>
-</ComponentCard>
+      </ComponentCard>
       {/* History Modal */}
       <Modal
         isOpen={isHistoryModalOpen}
@@ -577,9 +581,8 @@ export default function BlockedIpList() {
               <textarea
                 value={unblockComment}
                 onChange={(e) => setUnblockComment(e.target.value)}
-                className={`w-full p-4 border border-gray-300 rounded-xl dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
-                  saveStatus === "error" && !unblockComment ? "border-red-500 dark:border-red-500" : ""
-                }`}
+                className={`w-full p-4 border border-gray-300 rounded-xl dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${saveStatus === "error" && !unblockComment ? "border-red-500 dark:border-red-500" : ""
+                  }`}
                 rows={4}
                 placeholder="Enter a reason for unblocking..."
               />
