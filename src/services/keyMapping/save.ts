@@ -2,7 +2,7 @@ import { apiService } from "../apiService";
 import { KeyMappingUrls } from "../../enum/api/KeyMappingUrls";
 
 // Define the connect request payload
-interface ConnectKeyMappingRequest {
+export interface ConnectKeyMappingRequest {
   apikeyList: string[]; // Updated to match the API
   urlmapping_id: number;
 }

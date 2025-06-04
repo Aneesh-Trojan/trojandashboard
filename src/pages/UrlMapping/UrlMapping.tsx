@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import PageBreadcrumb from "../../components/common/PageBreadCrumb";
+// import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
 import { Modal } from "../../components/ui/modal";
 import Button from "../../components/ui/button";
@@ -15,6 +15,7 @@ interface UrlMapping {
   incomingurl: string;
   mappedurl: string;
   isactive: boolean;
+  mappingcount?: number;
 }
 
 type SortDirection = "asc" | "desc";
@@ -56,6 +57,7 @@ export default function UrlMappingManagement() {
 
   useEffect(() => {
     if (searchUrlMappings) {
+      console.log(searchUrlMappings);
       setUrlMappings(searchUrlMappings);
     }
   }, [searchUrlMappings]);
@@ -91,8 +93,14 @@ export default function UrlMappingManagement() {
           refetch();
           setSaveStatus("idle");
         }, 3000);
-      } catch (error) {
-        console.error("Error saving URL mapping:", error);
+      } catch (error:any) {
+        if (error?.data?.message) {
+          // Display the error message from the backend
+          setErrors({ incomingurl: error.data.message });
+        } else {
+          console.error("Error saving URL mapping:", error);
+          setSaveStatus("error");
+        }    
         setSaveStatus("error");
       }
     }
@@ -378,6 +386,16 @@ export default function UrlMappingManagement() {
                     <th
                       scope="col"
                       className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      onClick={() => handleSort("mappingcount")}
+                    >
+                      <div className="flex items-center">
+                        Mapped Count
+                        {getSortIcon("mappingcount")}
+                      </div>
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                       onClick={() => handleSort("isactive")}
                     >
                       <div className="flex items-center">
@@ -410,6 +428,9 @@ export default function UrlMappingManagement() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white">
                           {mapping.mappedurl}
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white">
+                        {mapping.mappingcount ?? 0}
+                      </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                           {mapping.isactive ? "Yes" : "No"}
                         </td>
@@ -640,6 +661,9 @@ export default function UrlMappingManagement() {
             setSelectedUrlMappingId(null);
           }}
           urlMappingId={selectedUrlMappingId}
+          onSaved={() => {
+            refetch(); 
+          }}
         />
       )}
     </>

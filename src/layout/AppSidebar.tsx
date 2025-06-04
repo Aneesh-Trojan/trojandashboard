@@ -28,7 +28,7 @@ const navItems: NavItem[] = [
     path: "/home",
   },
   {
-    name: "API Management",
+    name: "API Key Manage",
     icon: <TableIcon />,
     path: "/manage-api",
   },

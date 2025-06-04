@@ -17,9 +17,10 @@ interface IPRateLimitHistory {
 
 interface IPRateLimitHistoryTableProps {
   history: IPRateLimitHistory[];
+  showRequestCount: boolean;
 }
 
-export default function IPRateLimitHistoryTable({ history }: IPRateLimitHistoryTableProps) {
+export default function IPRateLimitHistoryTable({ history,showRequestCount }: IPRateLimitHistoryTableProps) {
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
       <div className="max-w-full overflow-x-auto">
@@ -33,6 +34,14 @@ export default function IPRateLimitHistoryTable({ history }: IPRateLimitHistoryT
                 >
                   IP Address
                 </TableCell>
+                {showRequestCount && (              
+                <TableCell
+                  isHeader
+                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                >
+                  Request Count
+                </TableCell> 
+                )}    
                 <TableCell
                   isHeader
                   className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
@@ -66,6 +75,11 @@ export default function IPRateLimitHistoryTable({ history }: IPRateLimitHistoryT
                       </div>
                     </div>
                   </TableCell>
+                  {showRequestCount && (                 
+                  <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                  {entry.requestCount}
+                  </TableCell> 
+                  )}        
                   <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                     {entry.isblocked ? "Blocked" : "Unblocked"}
                   </TableCell>

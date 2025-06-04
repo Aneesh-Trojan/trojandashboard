@@ -534,7 +534,9 @@ export default function BlockedIpList() {
               <span className="text-lg font-medium">Loading history...</span>
             </div>
           ) : ipRateLimitHistory ? (
-            <IPRateLimitHistoryTable history={ipRateLimitHistory} />
+            <IPRateLimitHistoryTable history={ipRateLimitHistory} 
+            showRequestCount={filters.isblocked === "false"}
+            />
           ) : (
             <p className="text-gray-600 dark:text-gray-400 text-center py-8">No history found.</p>
           )}

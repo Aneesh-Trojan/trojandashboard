@@ -8,15 +8,17 @@ import { FiSearch, FiCheck, FiLoader, FiX } from "react-icons/fi";
 interface ApiKey {
   apikey: string;
   clientName: string;
+  isCheck: boolean; 
 }
 
 interface KeyMappingModalProps {
   isOpen: boolean;
   onClose: () => void;
   urlMappingId: number;
+  onSaved?: () => void;
 }
 
-const KeyMappingModal: React.FC<KeyMappingModalProps> = ({ isOpen, onClose, urlMappingId }) => {
+const KeyMappingModal: React.FC<KeyMappingModalProps> = ({ isOpen, onClose, urlMappingId ,onSaved}) => {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [filteredApiKeys, setFilteredApiKeys] = useState<ApiKey[]>([]);
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
@@ -25,19 +27,23 @@ const KeyMappingModal: React.FC<KeyMappingModalProps> = ({ isOpen, onClose, urlM
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
 
   const localStorageKey = `selectedKeys_${urlMappingId}`;
-  const { data: fetchedApiKeys } = useFetchApiKeysQuery({ urlmapping_id: urlMappingId });
+  const { data: fetchedApiKeys } = useFetchApiKeysQuery({ urlmapping_id: urlMappingId }) as {
+    data?: ApiKey[];
+  };
 
   useEffect(() => {
-    if (fetchedApiKeys) setApiKeys(fetchedApiKeys);
-  }, [fetchedApiKeys]);
+    if (isOpen && fetchedApiKeys) {
+    setApiKeys(fetchedApiKeys);
+  }
+}, [isOpen,fetchedApiKeys]);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && apiKeys.length > 0) {
       initializeSelectedKeys();
       setSearchTerm("");
       setSaveStatus("idle");
     }
-  }, [isOpen, urlMappingId]);
+  }, [isOpen, urlMappingId,apiKeys]);
 
   useEffect(() => {
     const filtered = apiKeys.filter((key) =>
@@ -52,12 +58,20 @@ const KeyMappingModal: React.FC<KeyMappingModalProps> = ({ isOpen, onClose, urlM
     setFilteredApiKeys(sorted);
   }, [apiKeys, searchTerm, selectedKeys]);
 
-  const initializeSelectedKeys = () => {
-    const savedSelectedKeys = localStorage.getItem(localStorageKey);
-    const keys = savedSelectedKeys ? JSON.parse(savedSelectedKeys) : [];
-    setSelectedKeys(keys);
-    setInitialSelectedKeys(keys);
-  };
+  const initializeSelectedKeys = () => {    
+    const savedKeys = JSON.parse(localStorage.getItem(localStorageKey) || "null");
+    if (savedKeys && Array.isArray(savedKeys)) {
+      setSelectedKeys(savedKeys);
+      setInitialSelectedKeys(savedKeys);
+    } else  {
+      const initiallySelected = apiKeys
+        .filter((key) => key.isCheck)
+        .map((key) => key.apikey);
+    console.log("Initializing with saved keys:", initiallySelected);
+    setSelectedKeys(initiallySelected);
+    setInitialSelectedKeys(initiallySelected);
+  }
+};
 
   const handleCheckboxChange = (apikey: string) => {
     const updatedSelectedKeys = selectedKeys.includes(apikey)
@@ -77,6 +91,7 @@ const KeyMappingModal: React.FC<KeyMappingModalProps> = ({ isOpen, onClose, urlM
       await saveKeyMapping(payload).unwrap();
       localStorage.setItem(localStorageKey, JSON.stringify(selectedKeys));
       setSaveStatus("success");
+      if (onSaved) onSaved();
       setTimeout(() => onClose(), 3000);
     } catch (error) {
       console.error("Error saving key mapping:", error);
@@ -124,6 +139,7 @@ const KeyMappingModal: React.FC<KeyMappingModalProps> = ({ isOpen, onClose, urlM
             </div>
           ) : (
             filteredApiKeys.map((apiKey) => (
+             
               <div 
                 key={apiKey.apikey} 
                 className={`flex items-center p-4 rounded-xl transition-colors ${
@@ -132,6 +148,7 @@ const KeyMappingModal: React.FC<KeyMappingModalProps> = ({ isOpen, onClose, urlM
                     : "hover:bg-gray-50 dark:hover:bg-gray-700"
                 }`}
               >
+               
                 <input
                   type="checkbox"
                   checked={selectedKeys.includes(apiKey.apikey)}
